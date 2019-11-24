@@ -26,10 +26,12 @@ echo "<INFO> Adding Testing branch to apt sources..."
 echo 'deb http://ftp.de.debian.org/debian/ testing main non-free contrib' > /etc/apt/sources.list.d/testing.list
 echo 'APT::Default-Release "stable";' > /etc/apt/apt.conf.d/99myDefaultRelease
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys  04EE7237B7D453EC 648ACFD622F3D138
+APT_LISTCHANGES_FRONTEND=none
+DEBIAN_FRONTEND=noninteractive
 apt-get update
 
 echo "<INFO> Installing owserver from Testing branch (stable branch is broken in Debian Buster)..."
-apt-get -t testing install owfs owserver owhttpd owftpd owfs-fuse owfs-common owserver libow-3.2-3 libftdi1-2
+apt-get --no-install-recommends -q -y --allow-unauthenticated --fix-broken --reinstall --allow-downgrades --allow-remove-essential --allow-change-held-packages -t testing install owfs owserver owhttpd owftpd owfs-fuse owfs-common owserver libow-3.2-3 libftdi1-2
 
 echo "<INFO> Stopping and disabling OWFS services..."
 systemctl stop owserver
@@ -38,5 +40,11 @@ systemctl stop owftpd
 systemctl stop owhttpd
 systemctl disable owfs
 systemctl disable owftpd
+
+echo "<INFO> Installing UDEV Rule for FTDI 1-Wire Busmasters..."
+echo "# LoxBerry 1-Wire-NG Plugin device rule file - DO NOT EDIT BY HAND!" >/etc/udev/rules.d/99-1-Wire-NG.rules
+echo 'SUBSYSTEMS=="usb", KERNEL=="ttyUSB[0-9]*", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", GROUP="loxberry", MODE="0666", SYMLINK+="serial/1wire/$env{ID_SERIAL_SHORT}", RUN+="/opt/loxberry/bin/plugins/1-wire-ng/createftdi.sh $env{ID_SERIAL_SHORT}"' >> /etc/udev/rules.d/99-1-Wire-NG.rules
+udevadm control --reload-rules 
+udevadm trigger
 
 exit 0
