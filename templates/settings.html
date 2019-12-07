@@ -1,0 +1,905 @@
+<style>
+	.listtable td
+	{
+		vertical-align	:middle;
+		text-align		:center;
+	}
+	.listtable td img
+	{
+		padding			:5px;
+	}
+	.lb_flex-item 
+	{	
+		min-width	:450px;
+		width		:450px;
+		max-width	:450px;
+		flex-wrap	:nowrap;
+		margin-top: -10px;  
+	}
+	.lb_flex-item-help 
+	{
+		min-width	:100px;
+		width		:100%;
+		position	:relative;
+		margin-left	:10px;
+	}
+	.mqtttable {
+		vertical-align: middle;
+		text-align: left;
+		/* font-size: 90%; */
+		border-collapse: collapse;
+		border: 1px solid grey;
+		padding: 10px;
+		width: 100%;
+		
+	}
+	.mqtttable_vicol, .mqtttable_desccol {
+		border: 1px solid grey;
+		padding: 10px;
+	}
+	.mqtttable_headrow {
+	
+	}
+
+</style>
+
+
+<!-- ****************************************************************************************** -->
+
+<TMPL_IF FORM_OWFS>
+	<center>
+		<div style="display:flex;align-items:center;justify-content:center;width:100%">
+			<center>
+			<span id="owserverstate"></span>&nbsp;|&nbsp;<span id="owhttpdstate"></span>&nbsp;|&nbsp;<span id="owfs2mqttstate"></span>
+			</center>
+        	</div>
+	</center>
+	<hr>
+	<br>
+
+	<div id="main"> <!-- style="visibility:hidden"> style="display:none;" --> 
+		
+		<form>
+
+		<div class="lb_flex-container OWFS ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class="control-label"
+					for="owfsadapters"><TMPL_VAR OWFS.LABEL_ADAPTERS></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+					<label	class="control-label" for="usb"><TMPL_VAR OWFS.LABEL_USB></label>
+					<input type="checkbox" name="usb" id="usb"><br>
+					<label	class="control-label" for="serial2usb"><TMPL_VAR OWFS.LABEL_SERIAL2USB></label>
+					<input type="checkbox" name="serial2usb" id="serial2usb"><br>
+					<label	class="control-label" for="i2c"><TMPL_VAR OWFS.LABEL_I2C></label>
+					<input type="checkbox" name="i2c" id="i2c"><br>
+					<label	class="control-label" for="gpio"><TMPL_VAR OWFS.LABEL_GPIO></label>
+					<input type="checkbox" name="gpio" id="gpio"><br>
+
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR OWFS.HINT_OWFSADAPTERS>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+		
+		<div class="lb_flex-container OWFS ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class="control-label"
+					for="httpdport"><TMPL_VAR OWFS.LABEL_HTTPDPORT></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<input width="100%" value="" id="httpdport" name="httpdport" type="text" class="textfield" 
+				data-validation-rule="special:number-min-max-value:1:65000" data-validation-error-msg="<TMPL_VAR OWFS.MSG_VALINVALID_HTTPDPORT>">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR OWFS.HINT_HTTPDPORT>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+
+		<div class="lb_flex-container OWFS ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class="control-label"
+					for="serverport"><TMPL_VAR OWFS.LABEL_SERVERPORT></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<input width="100%" value="" id="serverport" name="serverport" type="text" class="textfield" 
+				data-validation-rule="special:number-min-max-value:1:65000" data-validation-error-msg="<TMPL_VAR OWFS.MSG_VALINVALID_SERVERPORT>">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR OWFS.HINT_SERVERPORT>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+
+		<div class="lb_flex-container OWFS ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class="control-label"
+					for="tempscale"><TMPL_VAR OWFS.LABEL_TEMPSCALE></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<select name="tempscale" id="tempscale">
+					<option value="C"><TMPL_VAR OWFS.LABEL_CELSIUS></option>
+					<option value="F"><TMPL_VAR OWFS.LABEL_FAHRENHEIT></option>
+				</select>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR OWFS.HINT_TEMPSCALE>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+
+		<div class="lb_flex-container OWFS ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class="control-label"
+					for="refreshdev"><TMPL_VAR OWFS.LABEL_REFRESH_DEV></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<input width="100%" value="" id="refreshdev" name="refreshdev" type="text" class="textfield" 
+				data-validation-rule="special:number-min-value:1" data-validation-error-msg="<TMPL_VAR OWFS.MSG_VALINVALID_REFRESH_DEV>">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR OWFS.HINT_REFRESH_DEV>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+
+		<div class="lb_flex-container OWFS ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class="control-label"
+					for="refreshdev"><TMPL_VAR OWFS.LABEL_REFRESH_VAL></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<input width="100%" value="" id="refreshval" name="refreshval" type="text" class="textfield" 
+				data-validation-rule="special:number-min-value:0.1" data-validation-error-msg="<TMPL_VAR OWFS.MSG_VALINVALID_REFRESH_VAL>">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR OWFS.HINT_REFRESH_VAL>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+
+		<div class="lb_flex-container OWFS ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class="control-label"
+					for="uncached1"><TMPL_VAR OWFS.LABEL_UNCACHED_1></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+					<label	class="control-label" for="uncached"><TMPL_VAR OWFS.LABEL_UNCACHED_2></label>
+					<input type="checkbox" name="uncached" id="uncached">
+
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR OWFS.HINT_UNCACHED>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+
+		<div class="lb_flex-container OWFS ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class="control-label"
+					for="fake"><TMPL_VAR OWFS.LABEL_FAKE></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<input width="100%" value="" id="fake" name="fake" type="text" class="textfield" 
+				data-validation-rule="^([A-Za-z0-9,]*)$" data-validation-error-msg="<TMPL_VAR OWFS.MSG_VALINVALID_FAKE>">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR OWFS.HINT_FAKE>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+
+		<div style="padding: 0px 0px 20px 0px;"></div>
+	
+		<div class="lb_flex-container OWFS">
+			<div	class="lb_flex-item-label">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+			<a href="javascript:saveOWFS();" id="btnsaveowfs" data-role="button" data-inline="true" data-icon="check"
+						data-transition="flow"><TMPL_VAR OWFS.BUTTON_SAVE></a>
+			<a href="javascript:openOWFS();" id="btnopenowfs" data-role="button" data-inline="true" data-icon="gear"
+						data-transition="flow"><TMPL_VAR OWFS.BUTTON_OPENOWFS></a>
+			<div class="hint" id="owfs_hint">&nbsp;</div>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+		
+		</form>
+	
+		<script>
+			// Validation
+			validate_enable('#fake');
+			validate_enable('#httpdport');
+			validate_enable('#serverport');
+			validate_enable('#refreshdev');
+			validate_enable('#refreshval');
+		</script>
+	
+	</div>
+
+</TMPL_IF>
+
+<!-- ****************************************************************************************** -->
+
+<TMPL_IF FORM_DEVICES>
+
+	<div id="main" style="visibility:hidden;"> <!-- style="display:none;" --> 
+		
+		<!-- Button area -->
+		<div style="text-align:center;">
+				<a 	href="#" 
+					id="btnsearchdevices" 
+					name="btnsearchdevices" 
+					data-role="button" 
+					data-inline="true" 
+					data-mini="true" 
+					data-icon="search"><TMPL_VAR DEVICES.BUTTON_SEARCH></a>
+				<div class="hint" id="search_hint">&nbsp;</div>
+		</div>
+
+		<div style="padding: 0px 0px 50px 0px;"></div>
+
+		<!-- Table -->
+		<div id="data-list"></div>
+		
+		<!-- Popup: Device Downloads -->
+		<div data-role="popup" id="popupDownloads" data-dismissible="true" style="width:800px;min-height:600px;" data-theme="a" class="ui-corner-all">
+			<div style="padding: 20px 20px;">
+				<h3 class="ui-title" style="text-align: center;"><TMPL_VAR DEVICES.HINT_VIVO> <span id="popupdevicesdownloadsheader"></span></h3>
+				<div id="popupdevicesdownloadscontent"></div>
+				
+			</div>
+		</div>
+	</div> <!-- main -->
+
+</TMPL_IF>
+
+<!-- ****************************************************************************************** -->
+		
+<TMPL_IF FORM_MQTT>
+
+	<div id="main"> <!-- style="visibility:hidden"> style="display:none;" --> 
+		
+		<form>
+		
+		<div class="lb_flex-container MQTT ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class=	"control-label"
+					for="MQTTTopic"><TMPL_VAR MQTT.LABEL_MQTTTopic></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<input width="100%" value="" id="MQTTTopic" name="MQTTTopic" type="text" class="textfield" 
+				data-validation-rule="^(?!.*//.*)[^\+#]+$" data-validation-error-msg="<TMPL_VAR MQTT.MSG_VALINVALID_MQTTTOPIC>">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR MQTT.HINT_MQTTTOPIC>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+	
+	<TMPL_IF MQTTGATEWAY_INSTALLED>
+		<div class="lb_flex-container MQTT ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class=	"control-label"
+					for="MQTTUseMQTTGateway"><TMPL_VAR MQTT.LABEL_MQTTUseMQTTGateway></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+					<input type="checkbox" name="MQTTUseMQTTGateway" id="MQTTUseMQTTGateway">
+				</fieldset>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR MQTT.HINT_MQTTUseMQTTGateway>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+		
+		<div class="lb_flex-container MQTT ui-state-disabled">
+			<div	class="lb_flex-item-label">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<span id="mqtt_onverviewlink"></span>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+		
+	</TMPL_IF>
+	
+		<div class="lb_flex-container MQTT ui-state-disabled ownbroker">
+			<div	class="lb_flex-item-label">
+				<label	class=	"control-label"
+					for="BrokerUsername"><TMPL_VAR MQTT.LABEL_BROKERSERVER></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<input width="100%" value="" id="BrokerServer" name="BrokerServer" type="text" class="textfield"
+				data-validation-rule="special:hostname_or_ipaddr" data-validation-error-msg="<TMPL_VAR MQTT.MSG_VALINVALID_BROKERSERVER>"> 
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR MQTT.HINT_BROKERSERVER>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+		
+		<div class="lb_flex-container MQTT ui-state-disabled ownbroker">
+			<div	class="lb_flex-item-label">
+				<label	class=	"control-label"
+					for="BrokerUsername"><TMPL_VAR MQTT.LABEL_BROKERPORT></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<input width="100%" value="" id="BrokerPort" name="BrokerPort" type="text" class="textfield"
+				data-validation-rule="special:number-min-max-value:1:65000" data-validation-error-msg="<TMPL_VAR MQTT.MSG_VALINVALID_BROKERPORT>">			
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR MQTT.HINT_BROKERPORT>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+		
+		<div class="lb_flex-container MQTT ui-state-disabled ownbroker">
+			<div	class="lb_flex-item-label">
+				<label	class=	"control-label"
+					for="BrokerUsername"><TMPL_VAR MQTT.LABEL_BROKERUSERNAME></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<input width="100%" value="" id="BrokerUsername" name="BrokerUsername" type="text" class="textfield"> 
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR MQTT.HINT_BROKERUSERNAME>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+		
+		<div class="lb_flex-container MQTT ui-state-disabled ownbroker">
+			<div	class="lb_flex-item-label">
+				<label	class=	"control-label"
+					for="BrokerPassword"><TMPL_VAR MQTT.LABEL_BROKERPASSWORD></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<input width="100%" value="" id="BrokerPassword" name="BrokerPassword" type="text" class="textfield"> 
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR MQTT.HINT_BROKERPASSWORD>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+	
+		<div style="padding: 0px 0px 20px 0px;"></div>
+	
+		<div class="lb_flex-container MQTT">
+			<div	class="lb_flex-item-label">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+			<a href="javascript:saveMQTT();" id="btnsavemqtt" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check" 
+						data-transition="flow"><TMPL_VAR MQTT.BUTTON_SAVE></a>
+			<div class="hint" id="mqtt_hint">&nbsp;</div>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+		
+		</form>
+	
+		<script>
+			// Validation
+			validate_enable('#MQTTTopic');
+			validate_enable('#BrokerServer');
+			validate_enable('#BrokerPort');
+		</script>
+	
+	</div>
+
+</TMPL_IF>
+
+<!-- ****************************************************************************************** -->
+
+<TMPL_IF FORM_LOG>
+	<TMPL_VAR LOGLIST>
+</TMPL_IF>
+
+<!-- ****************************************************************************************** -->
+
+<script>
+// Main form
+var formowfs = '<TMPL_VAR FORM_OWFS>';
+var formdevices = '<TMPL_VAR FORM_DEVICES>';
+var formmqtt = '<TMPL_VAR FORM_MQTT>';
+var formlog = '<TMPL_VAR FORM_LOG>';
+
+var storedDevices;
+
+$(function() {
+	
+	getconfig();
+
+	if (formowfs) {
+		// PIDs
+		setInterval(function(){ update_pids(); }, 5000);
+		update_pids();
+	}
+	
+	if (formdevices) {
+		console.log("Form devices - calling search");
+		$("#main").css( 'visibility', 'visible' );
+		$('#btnsearchdevices').trigger("click");
+	}
+	
+	// <TMPL_IF MQTTGATEWAY_PLUGINDBFOLDER>
+		$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank"><TMPL_VAR MQTT.LABEL_MQTT_GATEWAY_LINK></a>');
+	// </TMPL_IF>
+
+	// Eventhandlers for "Add" to enable and disable validation
+	$("#popupAddButton").click( function(e) {
+		allFormInputs = $("#popupAdd").find(":input");
+		allFormInputs.map(function(index,dom){validate_enable("#"+dom.id)});
+		console.log("popupAddButton: Found "+allFormInputs.length+" form inputs");
+	});
+	$("#popupAdd").on( "popupafterclose" , function(e) {
+		allFormInputs = $("#popupAdd").find(":input");
+		allFormInputs.map(function(index,dom){validate_clean_objects("#"+dom.id)});
+		allFormInputs.map(function(index,dom){$("#error-msg-"+dom.id).remove()});
+		console.log("popupAdd afterclose: Found "+allFormInputs.length+" form inputs");
+	});
+	// The btnbrideedit event handler is in getConfig (as it is generated dynamically
+	
+});
+
+function update_pids()
+{
+
+
+	$.ajax( { 
+			type: 'POST',
+			data: { 
+				ajax: 'getpids', 
+			}
+		} )
+	.done(function(resp) {
+		console.log( "owfsform getpids", "success", resp );
+		if(resp.pids.owserver != null) {
+			$("#owserverstate").attr("style", "color:green").html("<TMPL_VAR OWFS.MSG_OWSERVER_RUNNING> (PID "+resp.pids.owserver+")");
+		} else {
+			$("#owserverstate").attr("style", "color:red").html("<TMPL_VAR OWFS.MSG_OWSERVER_NOTRUNNING>");
+		}
+		if(resp.pids.owhttpd != null) {
+			$("#owhttpdstate").attr("style", "color:green").html("<TMPL_VAR OWFS.MSG_OWHTTPD_RUNNING> (PID "+resp.pids.owhttpd+")");
+		} else {
+			$("#owhttpdstate").attr("style", "color:red").html("<TMPL_VAR OWFS.MSG_OWHTTPD_NOTRUNNING>");
+		}
+		if(resp.pids.owfs2mqtt != null) {
+			$("#owfs2mqttstate").attr("style", "color:green").html("<TMPL_VAR OWFS.MSG_OWFS2MQTT_RUNNING> (PID "+resp.pids.owfs2mqtt+")");
+		} else {
+			$("#owfs2mqttstate").attr("style", "color:red").html("<TMPL_VAR OWFS.MSG_OWFS2MQTT_NOTRUNNING>");
+		}
+
+	})
+	.fail(function(resp) {
+		$("#owserverstate").attr("style", "color:red").html("<TMPL_VAR OWFS.MSG_FAILED_PID>");
+		$("#owhttpdstate").attr("style", "color:red").html("<TMPL_VAR OWFS.MSG_FAILED_PID>");
+		$("#owfs2mqttstate").attr("style", "color:red").html("<TMPL_VAR OWFS.MSG_FAILED_PID>");
+	})
+	.always(function(resp) {
+		console.log( "owfsform getpids", "finished", resp );
+
+	});
+
+}
+
+// Show device downloads
+function deviceDownloads ( intBridgeId, nukiId ) {
+	$("#popupdevicesdownloadsheader").text( storedDevices[nukiId].name );
+	$("#popupDownloads").popup("open");
+	detHtmlObj = $("#popupdevicesdownloadscontent");
+	detHtmlObj.empty();
+	detHtmlObj.attr("style", "color:blue;").html("<TMPL_VAR COMMON.HINT_PLEASE_WAIT>");
+	
+	$.ajax({ 
+		type: 'POST',
+		data: { 
+			ajax: 'getdevicedownloads', 
+			secpin: secpin, 
+			bridgeId: intBridgeId,
+			nukiId: nukiId  }
+	})
+	.fail(function( data ) {
+		detHtmlObj.attr("style", "color:red;").html("<TMPL_VAR COMMON.ERROR_COULD_NOT_GET_DATA>");
+		console.log( "checktoken Fail", data );
+	})
+	.done(function( data ) {
+		console.log( "deviceDownloads Success: ", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
+		detHtmlObj.empty();
+		detHtmlObj.attr("style", "color:black;");
+		detHtmlObj.append($('\
+			<table class="mqtttable">\
+			<tr>\
+				<th class="mqtttable_vicol ui-bar-a" colspan=2"><TMPL_VAR DEVICES.VIVO_HEADING_LOXONE_TEMPLATES></th>\
+			</tr>\
+			<tr>\
+				<td class="mqtttable_vicol"><TMPL_VAR DEVICES.VIVO_LABEL_OUTPUT_TEMPLATE></td>\
+				<td class="mqtttable_desccol">\
+					<a download='+data.payload.voFilename+' href="data:text/plain;base64,'+b64EncodeUnicode(data.payload.vo)+'">Download <TMPL_VAR DEVICES.VIVO_LABEL_OUTPUT_TEMPLATE></a>\
+				</td>\
+			</tr>\
+			<tr>\
+				<td class="mqtttable_vicol"><TMPL_VAR DEVICES.VIVO_LABEL_INPUT_TEMPLATE></td>\
+				<td class="mqtttable_desccol">\
+					<a download='+data.payload.viFilename+' href="data:text/plain;base64,'+b64EncodeUnicode(data.payload.vi)+'">Download <TMPL_VAR DEVICES.VIVO_LABEL_INPUT_TEMPLATE></a>\
+				</td>\
+			</tr>\
+			</table>\
+			<p><TMPL_VAR DEVICES.VIVO_HINT_TEMPLATES></p>'));
+		
+		detHtmlObj.append($(data.payload.mqttTable));
+	
+	
+	})
+	
+	
+}
+
+// Search for Devices
+$('#btnsearchdevices').click( function(e) {
+	console.log("Search for Devices");
+	$("#search_hint").attr("style", "color:blue;").html("<TMPL_VAR DEVICES.HINT_SEARCH_WAIT>");
+	$.ajax( { 
+			type: 'POST',
+			data: { ajax: 'searchdevices', secpin: secpin }
+		} )
+	.fail(function( data ) {
+		console.log( "searchdevices Fail", data );
+		$("#search_hint").attr("style", "color:red").html("<TMPL_VAR DEVICES.HINT_SEARCH_ERROR>: "+data.statusText);
+	})
+	.done(function( data ) {
+		console.log( "searchdevices Success: ", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
+		$("#search_hint").attr("style", "color:green").html("<TMPL_VAR DEVICES.HINT_SEARCH_DONE>");
+		getconfig();
+	})
+	.always(function( data ) {
+		console.log( "searchdevices Finished" );
+	});
+});
+
+// Save MQTT Settings
+function saveMQTT() {
+	$("#mqtt_hint").attr("style", "color:blue").html("<TMPL_VAR MQTT.HINT_SAVE_SAVING>");
+	console.log ("Saving", $('#MQTTTopic').val(), $('#BrokerServer').val());
+	$.ajax( { 
+			type: 'POST',
+			data: { 
+				ajax: 'savemqtt', 
+				topic: $('#MQTTTopic').val(),
+				usemqttgateway: $('#MQTTUseMQTTGateway').is(":checked"),
+				server: $('#BrokerServer').val(),
+				port: $('#BrokerPort').val(),
+				username: $('#BrokerUsername').val(),
+				password: $('#BrokerPassword').val()
+			}
+		} )
+	.fail(function( data ) {
+		console.log( "savemqtt Fail", data );
+		$("#mqtt_hint").attr("style", "color:red").html("<TMPL_VAR MQTT.HINT_SAVE_ERROR>: "+data.statusText);
+	})
+	.done(function( data ) {
+		console.log( "savemqtt Success: ", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
+		$("#mqtt_hint").attr("style", "color:green").html("<TMPL_VAR MQTT.HINT_SAVE_OK>");
+		getconfig();
+	})
+	.always(function( data ) {
+		console.log( "savenqtt Finished" );
+	});
+}
+
+// Save OWFS Settings
+function saveOWFS() {
+	$("#owfs_hint").attr("style", "color:blue").html("<TMPL_VAR OWFS.HINT_SAVE_SAVING>");
+	console.log ("Saving OWFS settings");
+	$.ajax( { 
+			type: 'POST',
+			data: { 
+				ajax: 'saveowfs', 
+				fake: $('#fake').val(),
+				usb: $('#usb').is(":checked"),
+				serial2usb: $('#serial2usb').is(":checked"),
+				i2c: $('#i2c').is(":checked"),
+				gpio: $('#gpio').is(":checked"),
+				httpdport: $('#httpdport').val(),
+				serverport: $('#serverport').val(),
+				tempscale: $('#tempscale').val(),
+				refreshdev: $('#refreshdev').val(),
+				refreshval: $('#refreshval').val(),
+				uncached: $('#uncached').val(),
+			}
+		} )
+	.fail(function( data ) {
+		console.log( "saveowfs Fail", data );
+		$("#owfs_hint").attr("style", "color:red").html("<TMPL_VAR OWFS.HINT_SAVE_ERROR>: "+data.statusText);
+	})
+	.done(function( data ) {
+		console.log( "saveowfs Success: ", data );
+		$("#owfs_hint").attr("style", "color:green").html("<TMPL_VAR OWFS.HINT_SAVE_OK>");
+		getconfig();
+	})
+	.always(function( data ) {
+		console.log( "saveowfs Finished" );
+	});
+}
+
+// Get Config
+function getconfig() {
+
+	if ( formowfs ) {
+		console.log( "Get Config for owfs form" );
+		var form = 'owfs';
+	}
+	if ( formdevices ) {
+		console.log( "Get Config for Devices form" );
+		var form = 'devices';
+	}
+	if ( formmqtt ) {
+		console.log( "Get Config for MQTT form" );
+		var form = 'mqtt';
+	}
+	if ( formlog ) {
+		console.log( "Get Config for LOG form" );
+		$("#main").css( 'visibility', 'visible' );
+		// No need to fetch config
+		return;
+	}
+		
+		// Ajax request
+		$.ajax({ 
+			type: 'POST',
+			data: { ajax: 'getconfig', config: form }
+		})
+		.fail(function( data ) {
+			console.log( "getconfig Fail", data );
+		})
+		.done(function( data ) {
+			console.log( "getconfig Success", data );
+			if(data.secpinerror) {
+				securePINwrong();
+				return;
+			}
+			$("#main").css( 'visibility', 'visible' );
+
+			if ( formdevices ) {
+				console.log( "Parse Item for Devices form" );
+				$('#data-list').empty();
+				if ( data.error || jQuery.isEmptyObject(data)) {
+					$('#data-list').html("<TMPL_VAR DEVICES.ERROR_NO_DEVICES_DEFINED>");
+					storedDevices = undefined;
+					return;
+				}
+				storedDevices = data;
+				// Create table
+				var table = $('<table width="100%" data-role="table" id="devicestable" data-mode="reflow" class="ui-responsive table-stroke listtable">').appendTo('#data-list');
+				// Add the header row
+				var theader = $('<thead />').appendTo(table);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_TYPE>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_NUKIID>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_NAME>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_BRIDGEID>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_PAIRED>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_RSSI>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_ACTIONS>' }).appendTo(theader);
+				// Create table body.
+				var tbody = $('<tbody />').appendTo(table);
+				// Add the data rows to the table body.
+				$.each( data, function( intBridgeId, item){
+					var row = $('<tr />').appendTo(tbody);
+					switch(item.deviceType) {
+						case 0: $('<td />', { html: '<img src="./images/nuki-smart-lock.svg" alt="'+DEVICETYPE[item.deviceType]+'" height="32"></img>' }).appendTo(row); break;
+						case 2: $('<td />', { html: '<img src="./images/nuki-opener.svg" alt="'+DEVICETYPE[item.deviceType]+'" height="32"></img>' }).appendTo(row); break;
+						default:  $('<td />', { html: '<img src="./images/nuki-unknown.svg" alt="unknown" height="32"></img>' }).appendTo(row);
+					}
+					$('<td />', { text: item.nukiId }).appendTo(row);
+					$('<td />', { text: item.name }).appendTo(row);
+					$('<td />', { text: item.bridgeId }).appendTo(row);
+					$('<td />', { text: ( item.paired == true ? '<TMPL_VAR COMMON.YES>' : '<TMPL_VAR COMMON.NO>' ) }).appendTo(row);
+					// Formular out_min+(rssi-in_min)*(out_max-out_min)/(in_max-in_min)
+					rssicol = item.rssi ? numberToColorHsl( 100+(item.rssi+40)*(0-100)/(-100+40) ) : "transparent";
+					$('<td />', { html: '<span style="background-color:'+rssicol+'">&nbsp;'+item.rssi+'&nbsp;</span>' }).appendTo(row);
+					$('<td />', { html: '\
+					<span class="deviceVOdownload" data-intbridgeid="'+item.bridgeId+'" data-nukiid="'+item.nukiId+'"><a href="#" id="btndeviceVOdownload'+item.nukiId+'" name="btndeviceVOdownload'+item.nukiId+'" \
+					title="<TMPL_VAR DEVICES.BUTTON_VIVO>"> \
+					<img src="./images/devices_vo_download_32.png" height="32"></img></a></span> \
+					' }).appendTo(row);
+					
+				});
+				
+				// Create event handler for Download details
+					$(".deviceVOdownload").on('click', function(e) {
+						console.log("Device VO download", $(this).attr("data-nukiid"), $(this).attr("data-intbridgeId"));
+						// deviceVOdownload( $(this).attr("data-intbridgeid"), $(this).attr("data-nukiid") );
+						deviceDownloads ( $(this).attr("data-intbridgeid"), $(this).attr("data-nukiid") );
+					});
+					
+				//$("#data-list").trigger("create");
+			};
+			
+			if ( formmqtt ) {
+				console.log( "Parse Item for MQTT form" );
+				// Fill the form with json data retrieved from the ajax getconfig call
+				if ( data.error || jQuery.isEmptyObject(data)) {
+					console.log("mqtt.json is empty, does not exist or is invalid.");
+				}
+				if(data.topic) {
+					$("#MQTTTopic").val(data.topic);
+				} else {
+					$("#MQTTTopic").val('owfs');
+				}
+				if(data.usemqttgateway === "true") {
+					$("#MQTTUseMQTTGateway").prop('checked', true).checkboxradio("refresh");
+				} else {
+					$("#MQTTUseMQTTGateway").prop('checked', false).checkboxradio("refresh");
+				}
+				if(data.server) {
+					$("#BrokerServer").val(data.server);
+				} else {
+					$("#BrokerServer").val('');
+				}
+				if(data.port) {
+					$("#BrokerPort").val(data.port);
+				} else {
+					$("#BrokerPort").val('');
+				}
+				if(data.username) {
+					$("#BrokerUsername").val(data.username);
+				} else {
+					$("#BrokerUsername").val('');
+				}
+				if(data.password) {
+					$("#BrokerPassword").val(data.password);
+				} else {
+					$("#BrokerPassword").val('');
+				}
+				
+				refreshMQTTForm();
+			};
+
+			if ( formowfs ) {
+				console.log( "Parse Item for OWFS form" );
+				// Fill the form with json data retrieved from the ajax getconfig call
+				if ( data.error || jQuery.isEmptyObject(data)) {
+					console.log("owfs.json is empty, does not exist or is invalid.");
+				}
+				if(data.fake) {
+					$("#fake").val(data.fake);
+				} else {
+					$("#fake").val('');
+				}
+				if(data.httpdport) {
+					$("#httpdport").val(data.httpdport);
+				} else {
+					$("#httpdport").val('2121');
+				}
+				if(data.serverport) {
+					$("#serverport").val(data.serverport);
+				} else {
+					$("#serverport").val('4304');
+				}
+				if(data.usb === "true") {
+					$("#usb").prop('checked', true).checkboxradio("refresh");
+				} else {
+					$("#usb").prop('checked', false).checkboxradio("refresh");
+				}
+				if(data.serial2usb === "true") {
+					$("#serial2usb").prop('checked', true).checkboxradio("refresh");
+				} else {
+					$("#serial2usb").prop('checked', false).checkboxradio("refresh");
+				}
+				if(data.i2c === "true") {
+					$("#i2c").prop('checked', true).checkboxradio("refresh");
+				} else {
+					$("#i2c").prop('checked', false).checkboxradio("refresh");
+				}
+				if(data.gpio === "true") {
+					$("#gpio").prop('checked', true).checkboxradio("refresh");
+				} else {
+					$("#gpio").prop('checked', false).checkboxradio("refresh");
+				}
+				if(data.tempscale === "C") {
+					$("#tempscale").val("C").change();
+				} else {
+					$("#tempscale").val("F").change();
+				}
+				if(data.uncached === "true") {
+					$("#uncached").prop('checked', true).checkboxradio("refresh");
+				} else {
+					$("#uncached").prop('checked', false).checkboxradio("refresh");
+				}
+				if(data.refreshdev) {
+					$("#refreshdev").val(data.refreshdev);
+				} else {
+					$("#refreshdev").val('300');
+				}
+				if(data.refreshval) {
+					$("#refreshval").val(data.refreshval);
+				} else {
+					$("#refreshval").val('60');
+				}
+				
+				refreshOWFSForm();
+			};
+
+
+		})
+		.always(function( data ) {
+			console.log( "getconfig Finished" );
+			$("#search_hint").attr("style", "color:black;").html("&nbsp;");
+		})
+}
+
+
+function refreshMQTTForm() {
+	console.log("refreshMQTTForm");
+	$(".MQTT").removeClass("ui-state-disabled");
+	if( $("#MQTTUseMQTTGateway").is(":checked") ) 
+		$(".ownbroker").addClass("ui-state-disabled");
+	else 
+		$(".ownbroker").removeClass("ui-state-disabled");
+}
+
+$("#MQTTUseMQTTGateway").on("click", refreshMQTTForm);
+
+function refreshOWFSForm() {
+	console.log("refreshOWFSForm");
+	$(".OWFS").removeClass("ui-state-disabled");
+}
+
+function openOWFS() {
+	window.open( location.protocol + '//' + location.host + ':' + $("#httpdport").val(), "_blank" );
+}
+
+</script>

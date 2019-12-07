@@ -1,0 +1,8 @@
+{
+   "password" : "",
+   "port" : "",
+   "server" : "",
+   "topic" : "owfs",
+   "usemqttgateway" : "true",
+   "username" : ""
+}
