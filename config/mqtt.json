@@ -3,6 +3,6 @@
    "port" : "",
    "server" : "",
    "topic" : "owfs",
-   "usemqttgateway" : "true",
+   "usemqttgateway" : "false",
    "username" : ""
 }

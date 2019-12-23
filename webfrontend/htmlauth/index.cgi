@@ -69,20 +69,6 @@ my $CFGFILEOWFS = $lbpconfigdir . "/owfs.json";
 
 if( $q->{ajax} ) {
 	
-	## Logging for ajax requests
-	$log = LoxBerry::Log->new (
-		name => 'AJAX',
-		filename => "$lbplogdir/ajax.log",
-		stderr => 1,
-		loglevel => 7,
-		addtime => 1,
-		append => 1,
-		nosession => 1,
-	);
-	
-	LOGSTART "P$$ Ajax call: $q->{ajax}";
-	LOGDEB "P$$ Request method: " . $ENV{REQUEST_METHOD};
-	
 	## Handle all ajax requests 
 	require JSON;
 	# require Time::HiRes;
@@ -91,164 +77,37 @@ if( $q->{ajax} ) {
 
 	# Save MQTT Settings
 	if( $q->{ajax} eq "savemqtt" ) {
-		LOGINF "P$$ savemqtt: savemqtt was called.";
 		$response{error} = &savemqtt();
 		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Save OWFS Settings
 	if( $q->{ajax} eq "saveowfs" ) {
-		LOGINF "P$$ saveowfs: saveowfs was called.";
 		$response{error} = &saveowfs();
 		print JSON->new->canonical(1)->encode(\%response);
 	}
 
 	# Get pids
 	if( $q->{ajax} eq "getpids" ) {
-		LOGINF "P$$ formowfs: getpids was called.";
 		pids();
 		$response{pids} = \%pids;
 		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
-	# Search bridges
-	if( $q->{ajax} eq "searchbridges" ) {
-		LOGINF "P$$ searchbridges: Search for Bridges was called.";
-		$response{error} = &searchbridges();
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Delete bridges
-	if( $q->{ajax} eq "deletebridge" ) {
-		LOGINF "P$$ deletebridge: Delete Bridge was called.";
-		$response{error} = &deletebridge($q->{bridgeid});
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Add bridges
-	if( $q->{ajax} eq "addbridge" ) {
-		LOGINF "P$$ addbridge: Add Bridge was called.";
-		%response = &addbridge();
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Activate bridges
-	if( $q->{ajax} eq "activatebridge" ) {
-		LOGINF "P$$ activatebridge: activatebridge was called.";
-		%response = &activatebridge($q->{bridgeid});
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Edit bridges
-	if( $q->{ajax} eq "editbridge" ) {
-		LOGINF "P$$ editbridge: Edit Bridge was called.";
-		%response = &editbridge($q->{bridgeid});
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Checkonline Bridges
-	if( $q->{ajax} eq "checkonline" ) {
-		LOGINF "P$$ checkonline: Checkonline was called.";
-		$response{online} = &checkonline($q->{url});
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-
-	# Checktoken Bridges
-	if( $q->{ajax} eq "checktoken" ) {
-		LOGINF "P$$ checktoken: Checktoken was called with Bridge ID " . $q->{bridgeid} . "";
-		%response = &checktoken($q->{bridgeid});
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Get single bridge config
-	if( $q->{ajax} eq "getbridgeconfig" ) {
-		LOGINF "P$$ getbridgeconfig: was called.";
-		if ( !$q->{bridgeid} ) {
-			LOGINF "P$$ getbridgeconfig: No bridge id given.";
-			$response{error} = "1";
-			$response{message} = "No bridge id given";
-		}
-		elsif ( &checksecpin() ) {
-			LOGINF "P$$ getbridgeconfig: Wrong SecurePIN.";
-			$response{error} = "1";
-			$response{message} = "Wrong SecurePIN";
-		}
-		else {
-			# Get config
-			%response = &getbridgeconfig ( $q->{bridgeid} );
-		}
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Search Devices
-	if( $q->{ajax} eq "searchdevices" ) {
-		LOGINF "P$$ searchdevices: Search for Devices was called.";
-		$response{error} = &searchdevices();
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Get Downloads for deviceId
-	if( $q->{ajax} eq "getdevicedownloads" ) {
-		LOGINF "P$$ getdevicedownloads: Get downloads for nukiId was called.";
-		($response{error}, $response{message}, $response{payload}) = &getdevicedownloads($q->{bridgeId}, $q->{nukiId});
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Manage callbacks of ALL bridges
-	if( $q->{ajax} eq "callbacks" ) {
-		LOGINF "P$$ callbacks: Callbacks was called.";
-		$response{error} = callbacks();
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Manage callbacks of a SINGLE bridge
-	if( $q->{ajax} eq "callback" ) {
-		LOGINF "P$$ callback: Callback was called.";
-		($response{error}, $response{message}) = callback($q->{bridgeid});
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Manage callbacks of ALL bridge
-	if( $q->{ajax} eq "callback_remove_all_from_all" ) {
-		LOGINF "P$$ callback_remove_all_from_all: Remove all Callbacks from all bridges was called.";
-		callback_remove_all_from_all();
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Manage callbacks of a SINGLE bridge
-	if( $q->{ajax} eq "ajax_callback_list" ) {
-		LOGINF "P$$ ajax_callback_list: ajax_callback_list was called.";
-		($response{error}, $response{message}, $response{callbacks}) = ajax_callback_list($q->{bridgeid});
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	# Reset callbacks of a SINGLE bridge (clear all and set ours)
-	if( $q->{ajax} eq "bridge_reset_callbacks" ) {
-		LOGINF "P$$ bridge_reset_callbacks: bridge_reset_callbacks was called.";
-		($response{error}, $response{message}, $response{callbacks}) = bridge_reset_callbacks($q->{bridgeid});
-		print JSON->new->canonical(1)->encode(\%response);
-	}
-	
-	
-	
 	# Get config
 	if( $q->{ajax} eq "getconfig" ) {
-		LOGINF "P$$ getconfig: Getconfig was called.";
 		my $content;
 		if ( !$q->{config} ) {
-			LOGINF "P$$ getconfig: No config given.";
 			$response{error} = "1";
 			$response{message} = "No config given";
 		}
 		elsif ( !-e $lbpconfigdir . "/" . $q->{config} . ".json" ) {
-			LOGINF "P$$ getconfig: Config file does not exist.";
 			$response{error} = "1";
 			$response{message} = "Config file does not exist";
 		}
 		else {
 			# Config
 			my $cfgfile = $lbpconfigdir . "/" . $q->{config} . ".json";
-			LOGINF "P$$ Parsing Config: " . $cfgfile;
 			$content = LoxBerry::System::read_file("$cfgfile");
 			print $content;
 		}
@@ -258,86 +117,12 @@ if( $q->{ajax} ) {
 	exit;
 
 ##########################################################################
-# CRONJOB operation
-##########################################################################
-
-} elsif ( is_enabled($q->{cron}) ) {
-
-	## Logging for cronjob requests
-	$log = LoxBerry::Log->new (
-		name => 'Cronjob',
-		stderr => 1,
-		loglevel => 7,
-		addtime => 1,
-	);
-	
-	LOGSTART "Cronjob operation";
-	LOGINF "P$$ Starting callback maintenance";
-	callbacks();
-	LOGINF "P$$ Querying current Nuki Smartlock status";
-	
-	my $jsonobjdevices = LoxBerry::JSON->new();
-	my $devices = $jsonobjdevices->open(filename => $CFGFILEDEVICES, readonly => 1);
-	
-	foreach my $devicekey ( keys %$devices ) {
-		my $device=$devices->{$devicekey};
-		LOGINF "P$$ Checking device $device->{name} (nukiId $device->{nukiId} on bridge $device->{bridgeId})";
-		my ($error, $message, $response) = lockState($device->{bridgeId}, $device->{nukiId});
-		my $jsondata;
-		if($response->decoded_content) {
-			eval {
-				$jsondata = decode_json($response->decoded_content);
-			};
-		}
-		if($error or $jsondata->{success} ne "1") {
-			if( $jsondata->{success} ne "1" ) {
-				$message = "Bridge responded ok, but returned success=FALSE querying the device.";
-				LOGERR "P$$ " . $message;
-			}
-			LOGDEB "P$$ Nuki response: HTTP " . $response->code . " Content: " . $response->decoded_content;
-			# Generate an own json response
-			$jsondata=undef;
-			$jsondata->{nukiId} = $device->{nukiId};
-			$jsondata->{state} = -1;
-			$jsondata->{stateName} = $message;
-			
-		} else {
-			delete $jsondata->{success};
-			$jsondata->{nukiId} = $device->{nukiId};
-		}
-		
-		# Call PHP MQTT callback script to send data
-		
-		my $jsonstr = encode_json($jsondata);
-		LOGDEB "P$$ Json to send: $jsonstr";
-		$jsonstr = quotemeta($jsonstr);
-		my $callbackoutput = `cd $lbphtmldir && php $lbphtmldir/callback.php --json "$jsonstr" --sentbytype 2`;
-		LOGDEB "P$$ Callback output:";
-		LOGDEB "P$$ ".$callbackoutput;
-		sleep 1;
-	}
-	
-	exit;
-
-	
-##########################################################################
 # Normal request (not AJAX)
 ##########################################################################
 
 } else {
 	
 	require LoxBerry::Web;
-	
-	## Logging for serverside webif requests
-	$log = LoxBerry::Log->new (
-		name => 'Webinterface',
-		filename => "$lbplogdir/webinterface.log",
-		stderr => 1,
-		loglevel => 7,
-		addtime => 1
-	);
-
-	LOGSTART "1-WIRE-NG WebIf";
 	
 	# Init Template
 	$template = HTML::Template->new(
@@ -348,13 +133,7 @@ if( $q->{ajax} ) {
 	);
 	%L = LoxBerry::System::readlanguage($template, "language.ini");
 	
-	# Send default values to JavaScript
-	#$template->param("BRIDGETYPE", LoxBerry::JSON::escape(encode_json(\%bridgeType)));
-	#$template->param("DEVICETYPE", LoxBerry::JSON::escape(encode_json(\%deviceType)));
-	#$template->param("LOCKSTATE", LoxBerry::JSON::escape(encode_json(\%lockState)));
-	#$template->param("LOCKACTION", LoxBerry::JSON::escape(encode_json(\%lockAction)));
-
-	# Default is Bridges form
+	# Default is owfs form
 	$q->{form} = "owfs" if !$q->{form};
 
 	if ($q->{form} eq "owfs") { &form_owfs() }
@@ -370,7 +149,7 @@ exit;
 
 
 ##########################################################################
-# Form: BRIDGES
+# Form: OWFS
 ##########################################################################
 
 sub form_owfs
@@ -441,9 +220,9 @@ sub form_print
 	$navbar{98}{URL} = 'index.cgi?form=log';
 	$navbar{98}{active} = 1 if $q->{form} eq "log";
 
-	$navbar{98}{Name} = "$L{'COMMON.LABEL_CREDITS'}";
-	$navbar{98}{URL} = 'index.cgi?form=credits';
-	$navbar{98}{active} = 1 if $q->{form} eq "credits";
+	$navbar{99}{Name} = "$L{'COMMON.LABEL_CREDITS'}";
+	$navbar{99}{URL} = 'index.cgi?form=credits';
+	$navbar{99}{active} = 1 if $q->{form} eq "credits";
 	
 	# Template
 	LoxBerry::Web::lbheader($L{'COMMON.LABEL_PLUGINTITLE'} . " V$version", "https://www.loxwiki.eu/x/3gmcAw", "");
@@ -472,7 +251,7 @@ sub pids
 {
 	$pids{'owserver'} = trim(`pgrep -f owserver`) ;
 	$pids{'owhttpd'} = trim(`pgrep -f owhttpd`) ;
-	$pids{'owfs2mqtt'} = trim(`pgrep -f owfs2mqtt`) ;
+	$pids{'owfs2mqtt'} = trim(`pgrep -d , -f owfs2mqtt`) ;
 }
 
 sub searchbridges
@@ -1656,7 +1435,7 @@ sub savemqtt
 		close $fh;
 	};
 	if ($@) {
-		LOGERR "savemqtt: Could not write $subscr_file: $@";
+		$errors++;
 	}
 	
 	return ($errors);
@@ -1692,8 +1471,8 @@ sub saveowfs
 		print $fh "server: usb = all\n" if is_enabled($q->{usb});
 		print $fh "server: i2c = ALL:ALL\n" if is_enabled($q->{i2c});
 		print $fh "server: w1\n" if is_enabled($q->{gpio});
-		if ( is_enabled($q->{serial2usb}) && -e "$lbplogdir/ftdidevices.dat" ) {
-			open(my $fh1, '<', "$lbplogdir/ftdidevices.dat");
+		if ( is_enabled($q->{serial2usb}) && -e "$lbpdatadir/ftdidevices.dat" ) {
+			open(my $fh1, '<', "$lbpdatadir/ftdidevices.dat");
 			while (my $row = <$fh1>) {
 				chomp $row;
 				print $fh "$row\n";
@@ -1703,13 +1482,35 @@ sub saveowfs
 		close $fh;
 	};
 	if ($@) {
-		LOGERR "saveowfs: Could not write $subscr_file: $@";
+		$errors++;
 	}
 
-	system ("sudo /bin/systemctl restart owserver > /dev/null 2>&1");
-	system ("sudo /bin/systemctl restart owhttpd > /dev/null 2>&1");
+	my $loglevel = LoxBerry::System::pluginloglevel();
+	my $verbose = "0";
+	if ($loglevel eq "7") {
+		$verbose = 1;
+	}
+
+	# Restart OWFS
+	system("sudo systemctl enable owserver >/dev/null 2>&1");
+	system("sudo systemctl enable owhttpd >/dev/null 2>&1");
+	system("sudo $lbpbindir/watchdog.pl action=restart verbose=$verbose >/dev/null 2>&1");
+	
+	# Create Cronjob
+	my $cron_file = $lbhomedir . "/system/cron/cron.01min/" . $lbpplugindir;
+	eval {
+		open(my $fh, '>', $cron_file);
+		print $fh "#!/bin/bash\n";
+		print $fh "sudo $lbpbindir/watchdog.pl action=check verbose=0\n";
+		close $fh;
+		system("chmod 755 $cron_file >/dev/null 2>&1");
+	};
+	if ($@) {
+		$errors++;
+	}
 
 	return ($errors);
+
 }
 
 # Get VIs/VOs and data for nukiId

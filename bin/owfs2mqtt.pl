@@ -5,10 +5,11 @@ use LoxBerry::Log;
 use LoxBerry::JSON;
 use Net::MQTT::Simple;
 use OWNet;
-use Time::HiRes qw ( sleep );
+use Time::HiRes qw ( sleep time );
 use CGI;
 #use warnings;
 use strict;
+use Data::Dumper;
 
 # Version of this script
 my $version = "0.1.0";
@@ -34,6 +35,7 @@ my $owserver;
 my $mqtt;
 my $error;
 my $verbose;
+my $mqtt;
 
 # Command line options
 my $cgi = CGI->new;
@@ -41,17 +43,19 @@ $cgi->import_names('R');
 
 # Logging
 # Create a logging object
-my $log = LoxBerry::Log->new (  name => "owfs2mqtt Bus.$R::bus",
+my $log = LoxBerry::Log->new (  name => "owfs2mqtt",
 package => '1-wire-ng',
 logdir => "$lbplogdir",
-#filename => "$lbplogdir/watchdog.log",
-#append => 1,
+addtime => 1,
 );
 
+# Verbose
 if ($R::verbose || $R::v) {
         $log->stdout(1);
         $log->loglevel(7);
 }
+
+LOGSTART "Starting owfs2mqtt";
 
 # Bus to read
 if ($R::bus eq "") {
@@ -60,38 +64,53 @@ if ($R::bus eq "") {
 } else {
 	LOGINF "Reading from Bus.$R::bus";
 	$bus = "/bus." . $R::bus;
+	LOGTITLE "Daemon owfs2mqtt for Bus.$R::bus";
 }
 
 # Read OWFS Configuration
 my $owfscfgfile = $lbpconfigdir . "/owfs.json";
 my $jsonobjowfs = LoxBerry::JSON->new();
 my $owfscfg = $jsonobjowfs->open(filename => $owfscfgfile);
+if ( !%$owfscfg ) {
+	LOGERR "Cannot open configuration $owfscfgfile. Exiting.";
+	exit (1);
+}
 
+# Set Defaults from config
+# Refresh Devices
 if ( $owfscfg->{"refreshdev"} ) {
 	$refresh_devices=$owfscfg->{"refreshdev"};
 } else {
 	$refresh_devices=300;
 }
 LOGDEB "Device Refresh: $refresh_devices";
+
+# Refresh Values
 if ( $owfscfg->{"refreshval"} ) {
 	$refresh_values=$owfscfg->{"refreshval"};
 } else {
 	$refresh_values=60;
 }
 LOGDEB "Default Value Refresh: $refresh_values";
+
+# Uncached
 if ( $owfscfg->{"uncached"} ) {
-	LOGDEB "Default uncached reading."
+	LOGDEB "Default uncached reading.";
 	$uncached="/uncached";
 } else {
-	LOGDEB "Default cached reading."
+	LOGDEB "Default cached reading.";
 	$uncached="";
 }
+
+# OWFS Server Port
 if ( $owfscfg->{"serverport"} ) {
 	$serverport=$owfscfg->{"serverport"};
 } else {
 	$serverport="4304";
 }
 LOGDEB "Server Port: $serverport";
+
+# Tempscale
 if ( $owfscfg->{"tempscale"} ) {
 	$tempscale=$owfscfg->{"tempscale"};
 } else {
@@ -103,13 +122,28 @@ LOGDEB "Tempscale: $tempscale";
 my $mqttcfgfile = $lbpconfigdir . "/mqtt.json";
 my $jsonobjmqtt = LoxBerry::JSON->new();
 my $mqttcfg = $jsonobjmqtt->open(filename => $mqttcfgfile);
+if ( !%$mqttcfg ) {
+	LOGERR "Cannot open configuration $mqttcfgfile. Exiting.";
+	exit (1);
+}
+# Set defaults
+my $mqtttopic = $mqttcfg->{"topic"};
+if (!$mqtttopic) {
+	$mqtttopic = "owfs";
+}
+# Connect
+&mqttconnect();
 
 # Read Device Configuration
 my $devcfgfile = $lbpconfigdir . "/devices.json";
 my $jsonobjdev = LoxBerry::JSON->new();
 my $devcfg = $jsonobjdev->open(filename => $devcfgfile);
+if ( !%$devcfg ) {
+	LOGERR "Cannot open configuration $devcfgfile. Exiting.";
+	exit (1);
+}
 
-# Create owserver object
+# Connect to OWServer
 $error = owconnect();
 if ($error) {
 	LOGERR "Error while connecting to OWServer.";
@@ -129,20 +163,42 @@ while (1) {
 
 	# Scan for values - default configs
 	if ( $now > $lastvalues + $refresh_values ) {
-		LOGDEB "Parse Values from Default Config"
 		$lastvalues = time();
 		foreach (@devices) {
 			my $device = $_;
-			# Print default values
+			# Create data structure
+			my $deviceclear = $device;
+			$deviceclear =~ s/\W//g;
+			my $busclear = $bus;
+			$busclear=~ s/^\///;
+			my $uncachedclear;
+			if ($uncached) {
+				$uncachedclear = "1";
+			} else {
+				$uncachedclear = "0";
+			}
+			my %data = ( "address" => "$deviceclear",
+					"timestamp" => "$lastvalues",
+					"bus" => "$busclear",
+					"Uncached" => "$uncachedclear"
+			);
+			# Read devices/values
 			my @values = split(/,/,$values{$device});
 			foreach (@values) {
-				my $value = owreadvalue($device, $_);
-				LOGDEB "Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value;
+				my $value = owreadvalue("$uncached" . "$device", "$_");
+				$value =~ s/^\s+//;
+				LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value;
+				$data{"$_"} = $value;
 			}
 			if ( $present{$device} ) {
-				my $value = owreadpresent($device);
-				LOGDEB "Read Present: " . $bus . $uncached . $device . " " . $_ . ": " . $value;
+				my $value = owreadpresent("$uncached" . "$device");
+				$value =~ s/^\s+//;
+				LOGDEB "Default: Read Present: " . $bus . $uncached . $device . " " . $_ . ": " . $value;
+				$data{"present"} = $value;
 			}
+			# Publish
+			my $json = encode_json \%data;
+			&mqttpublish($device,$json);
 		}
 	}
 	
@@ -151,9 +207,24 @@ while (1) {
 		my $device = $_;
 		my @values = "";
 		my $customuncached = "";
+		my $next = $lastvalues{$device} + $devcfg->{"$device"}->{"refresh"};
 		if ( $now > $lastvalues{$device} + $devcfg->{"$device"}->{"refresh"} ) {
 			$lastvalues{$device} = time();
-			# Print default values
+			# Create data structure
+			my $deviceclear = $device;
+			$deviceclear =~ s/\W//g;
+			my $busclear = $bus;
+			$busclear=~ s/^\///;
+			my $uncachedclear;
+			if ($uncached) {
+			} else {
+				$uncachedclear = "0";
+			}
+			my %data = ( "address" => "$deviceclear",
+					"timestamp" => "$lastvalues",
+					"bus" => "$busclear"
+			);
+			# Read devices/values
 			if ( $devcfg->{"$device"}->{"values"} ) {
 				@values = split(/,/,$devcfg->{"$device"}->{"values"});
 			} else {
@@ -161,13 +232,26 @@ while (1) {
 			}
 			if ( $devcfg->{"$device"}->{"uncached"} ) {
 				$customuncached = "/uncached";
+				$uncachedclear = "1";
+			} else {
+				$uncachedclear = "0";
 			}
+			$data{"Uncached"} = $uncachedclear;
 			foreach (@values) {
-				#print $bus . $customuncached . $device . " " . $_ . ": " . $owserver->read( "$bus" . "$customuncached" . "$device/$_" ) . "\n";
+				my $value = owreadvalue("$customuncached" . "$device", "$_");
+				$value =~ s/^\s+//;
+				LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value;
+				$data{"$_"} = $value;
 			}
 			if ( $devcfg->{"$device"}->{"checkpresent"} ) {
-				#print $bus . $customuncached . $_ . ": " . $owserver -> present( "$bus" . "$customuncached" . "$device" ) . "\n";
+				my $value = owreadpresent("$customuncached" . "$device");
+				$value =~ s/^\s+//;
+                                LOGDEB "Custom:  Read Present: " . $bus . $customuncached . $device . " " . $_ . ": " . $value;
+				$data{"present"} = $value;
 			}
+			# Publish
+			my $json = encode_json \%data;
+			&mqttpublish($device,$json);
 		}
 	}
 
@@ -179,21 +263,34 @@ while (1) {
 
 #############################################################################
 # Sub routines
-# ###########################################################################
+#############################################################################
 
+##
+## Read devices from bus
+##
 sub readdevices
 {
-	LOGINF "Scanning for devices...\n";
+
+	LOGINF "Scanning for devices at $bus...";
 	@devices = "";
 	my $devices;
+	
+	# Scan Bus
 	eval {
 		$devices = $owserver->dir("$bus");
 	};
 	if ($@ || !$devices) {
 		my $error = $@ || 'Unknown failure';
-        	LOGERR "An error occurred - $error";
+        	LOGERR "An error occurred - $error Devices: $devices";
 		exit (1);
 	};
+	
+	# Add manually configured devices 
+	foreach (keys %$devcfg) {
+		$devices = $devices . "," . $_;
+	}
+
+	# Set default values
 	my @temp = split(/,/,$devices);
 	for (@temp) {
 		if ( $_ =~ /^\/bus\.\d*\/(\d){2}.*$/ ) {
@@ -204,15 +301,16 @@ sub readdevices
 			# Fill hash/array
 			$family{$device} = $family;
 			# Seperate devices with custom config
-			if ( $devcfg->{"$device"} ) {
-				print "Custom:  $device\n";
+			if ( $devcfg->{"$device"}->{"configured"} ) {
+				LOGDEB "Custom:  Config for $device";
 				push (@customdevices, $device),
 			} else {
-				print "Default: $device\n";
+				LOGDEB "Default: Config for $device";
 				push (@devices, $device),
 			}
 		}
 	}
+
 	# Check for Default values
 	foreach (@devices) {
 		my $values = "";
@@ -260,16 +358,21 @@ sub readdevices
 		$values{$_} = $values;
 		$present{$_} = $present;
 	}
+
 	return();
+
 };
 
+##
+## Read value from OWServer
+##
 sub owreadvalue
 {
 
 	my ($owdevice, $owvalue) = @_;
 	my $value;
 	eval {
-		$value = $owserver->read( "$bus" . "$uncached" . "$owdevice/$owvalue" );
+		$value = $owserver->read( "$bus" . "$owdevice/$owvalue" );
 	};
 	if ($@ || !$value) {
 		my $error = $@ || 'Unknown failure';
@@ -280,13 +383,16 @@ sub owreadvalue
 
 }
 
+##
+## Read presents from OWServer
+###
 sub owreadpresent
 {
 
-	my ($owdevice) = @_;
+	my ($owdevice, $owvalue) = @_;
 	my $value;
 	eval {
-		$value = $owserver->present( "$bus" . "$uncached" . "$owdevice" );
+		$value = $owserver->read( "$bus" . "$owdevice/present" );
 	};
 	if (!$value) {
 		$value = "0";
@@ -295,6 +401,9 @@ sub owreadpresent
 
 }
 
+##
+## Connect to OWServer
+##
 sub owconnect
 {
 	eval {
@@ -309,30 +418,103 @@ sub owconnect
 
 };
 
+##
+## Connect to MQTT Broker
+##
 sub mqttconnect
 {
+
 	$ENV{MQTT_SIMPLE_ALLOW_INSECURE_LOGIN} = 1;
+	my $mqtt_username;
+	my $mqtt_password;
+	my $mqttbroker;
+	my $mqttport;
 	
 	# Use MQTT Gateway credentials
-	# Check if MQTT plugin in installed
-	if ( is_enabled( $mqttcfg->{"usemqttgateway"} ) {
+	if ( is_enabled( $mqttcfg->{"usemqttgateway"} ) ) {
+		LOGINF "Using MQTT Settings from MQTT Gateway Plugin";
+		my $plugin = LoxBerry::System::plugindata("mqttgateway");
+		# Read MQTT Cred Configuration
+		my $mqttgwcfgfile = $lbhomedir . "/config/plugins/" . $plugin->{"PLUGINDB_FOLDER"} . "/cred.json";
+		my $jsonobjmqttgw = LoxBerry::JSON->new();
+		my $mqttgwcfg = $jsonobjmqttgw->open(filename => $mqttgwcfgfile);
+		if ( !%$mqttgwcfg ) {
+			LOGERR "Cannot open configuration $mqttgwcfgfile. Exiting.";
+			exit (1);
+		}
+		$mqtt_username = $mqttgwcfg->{"Credentials"}->{"brokeruser"};
+		$mqtt_password = $mqttgwcfg->{"Credentials"}->{"brokerpass"};
+		$mqttbroker = "localhost";
+		$mqttport = "1883";
+	# Use own MQTT credentials
+	} else {
+		LOGINF "Using my own MQTT Settings";
+		$mqtt_username = $mqttcfg->{"username"};
+		$mqtt_password = $mqttcfg->{"password"};
+		$mqttbroker = $mqttcfg->{"server"};
+		$mqttport = $mqttcfg->{"port"};
 	}
+	LOGDEB "MQTT Settings: User: $mqtt_username; Pass: $mqtt_password; Broker: $mqttbroker; Port: $mqttport";
+	
+	# Connect
 	eval {
-		$mqtt = Net::MQTT::Simple->new('localhost:1883');
-		if($mqtt_username and $mqtt_password) {
+		LOGINF "Connecting to MQTT Broker";
+		$mqtt = Net::MQTT::Simple->new($mqttbroker . ":" . $mqttport);
+		$mqtt->last_will($mqtttopic . "/status/plugin", "Disconnected", 1);
+		$mqtt->last_will($mqtttopic . "/status/plugin_value", "0", 1);
+		if( $mqtt_username and $mqtt_password ) {
+			LOGDEB "MQTT Login with Username and Password: Sending $mqtt_username $mqtt_password";
 			$mqtt->login($mqtt_username, $mqtt_password);
 		}
 	};
-	if ($@ || !$owserver) {
+	if ($@ || !$mqtt) {
 		my $error = $@ || 'Unknown failure';
         	LOGERR "An error occurred - $error";
 		exit (1);
 	};
+
+	# Update Plugin Status
+	&mqttpublish ("/plugin", "Connected");
+	&mqttpublish ("/plugin_value", "1");
+
 	return($error);
 
 };
 
+##
+## Publush MQTT Topic
+##
+sub mqttpublish
+{
+
+	my ($owdevice, $devdata) = @_;
+	if (!$owdevice || !$devdata) {
+		return($error);
+	}
+
+	# Clear Name
+	my $devname = $devcfg->{"$owdevice"}->{"name"};
+	if (!$devname) {
+		$devname = $owdevice;
+		$devname =~ s/^\///;
+	};
+
+	# Publish
+	eval {
+		$mqtt->retain($mqtttopic . "/status/" . $devname, "$devdata");
+		LOGDEB "Publishing " . $mqtttopic . "/status/" . $devname . " " . $devdata;
+	};
+
+	return ($error);
+
+};
+
+##
+## Always execute when Script ends
+##
 END {
-	$mqtt->disconnect();
+
+	&mqttpublish ("/plugin", "Disconnected");
+	&mqttpublish ("/plugin_value", "0");
 	LOGEND "End.";
 }

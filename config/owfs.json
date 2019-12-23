@@ -1,5 +1,5 @@
 {
-   "fake" : "26,10,10,01",
+   "fake" : "",
    "gpio" : "true",
    "httpdport" : "2121",
    "i2c" : "true",

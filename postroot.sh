@@ -41,6 +41,10 @@ systemctl stop owhttpd
 systemctl disable owfs
 systemctl disable owftpd
 
+echo "<INFO> Installing OWFS Configuration..."
+mv /etc/owfs.conf /etc/owfs.conf.orig
+ln -s $PCONFIG/owfs.conf /etc/owfs.conf
+
 echo "<INFO> Installing UDEV Rule for FTDI 1-Wire Busmasters..."
 echo "# LoxBerry 1-Wire-NG Plugin device rule file - DO NOT EDIT BY HAND!" > /etc/udev/rules.d/99-1-Wire-NG.rules
 echo "SUBSYSTEMS==\"usb\", KERNEL==\"ttyUSB[0-9]*\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", GROUP=\"loxberry\", MODE=\"0666\", SYMLINK+=\"serial/1wire/\$env{ID_SERIAL_SHORT}\", RUN+=\"$PBIN/createftdi.sh \$env{ID_SERIAL_SHORT}\"" >> /etc/udev/rules.d/99-1-Wire-NG.rules
