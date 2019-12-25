@@ -12,7 +12,7 @@ use strict;
 use Data::Dumper;
 
 # Version of this script
-my $version = "0.1.0";
+my $version = "0.1.0.1";
 
 # Globals
 my $now;
@@ -22,6 +22,7 @@ my %lastvalues;
 my %family;
 my %values;
 my %present;
+my %cache;
 my @devices;
 my @customdevices;
 my $refresh_devices;
@@ -59,6 +60,7 @@ LOGSTART "Starting owfs2mqtt";
 
 # Bus to read
 if ($R::bus eq "") {
+	$log->stdout(1);
 	LOGERR "You have to specify the bus you would like to read. Exiting.";
 	exit 1;
 } else {
@@ -165,6 +167,7 @@ while (1) {
 	if ( $now > $lastvalues + $refresh_values ) {
 		$lastvalues = time();
 		foreach (@devices) {
+			my $publish = 0;
 			my $device = $_;
 			# Create data structure
 			my $deviceclear = $device;
@@ -187,23 +190,40 @@ while (1) {
 			foreach (@values) {
 				my $value = owreadvalue("$uncached" . "$device", "$_");
 				$value =~ s/^\s+//;
-				LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value;
-				$data{"$_"} = $value;
+				if ( $cache{"$device"}{"$_"} eq $value ) {
+					LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value . " Not changed -> skipping";
+					next;
+				} else {
+					LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value . " Changed -> publishing";
+					$data{"$_"} = $value;
+					$cache{"$device"}{"$_"} = $value;
+					$publish = 1;
+				}
 			}
 			if ( $present{$device} ) {
 				my $value = owreadpresent("$uncached" . "$device");
 				$value =~ s/^\s+//;
-				LOGDEB "Default: Read Present: " . $bus . $uncached . $device . " " . $_ . ": " . $value;
-				$data{"present"} = $value;
+				if ( $cache{"$device"}{"present"} eq $value ) {
+					LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value . " -> Value not changed -> skipping";
+					next;
+				} else {
+					LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value . " -> Value changed -> publishing";
+					$data{"present"} = $value;
+					$cache{"$device"}{"present"} = $value;
+					$publish = 1;
+				}
 			}
 			# Publish
-			my $json = encode_json \%data;
-			&mqttpublish($device,$json);
+			if ( $publish ) {
+				my $json = encode_json \%data;
+				&mqttpublish($device,$json);
+			}
 		}
 	}
 	
 	# Scan for values - custom configs
 	foreach (@customdevices) {
+		my $publish = 0;;
 		my $device = $_;
 		my @values = "";
 		my $customuncached = "";
@@ -216,10 +236,6 @@ while (1) {
 			my $busclear = $bus;
 			$busclear=~ s/^\///;
 			my $uncachedclear;
-			if ($uncached) {
-			} else {
-				$uncachedclear = "0";
-			}
 			my %data = ( "address" => "$deviceclear",
 					"timestamp" => "$lastvalues",
 					"bus" => "$busclear"
@@ -240,18 +256,34 @@ while (1) {
 			foreach (@values) {
 				my $value = owreadvalue("$customuncached" . "$device", "$_");
 				$value =~ s/^\s+//;
-				LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value;
-				$data{"$_"} = $value;
+				if ( $cache{"$device"}{"$_"} eq $value ) {
+					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value . " -> Value not changed -> skipping";
+					next;
+				} else {
+					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value . " -> Value changed -> publishing";
+					$data{"$_"} = $value;
+					$cache{"$device"}{"$_"} = $value;
+					$publish = 1;
+				}
 			}
 			if ( $devcfg->{"$device"}->{"checkpresent"} ) {
 				my $value = owreadpresent("$customuncached" . "$device");
 				$value =~ s/^\s+//;
-                                LOGDEB "Custom:  Read Present: " . $bus . $customuncached . $device . " " . $_ . ": " . $value;
-				$data{"present"} = $value;
+				if ( $cache{"$device"}{"present"} eq $value ) {
+					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value . " -> Value not changed -> skipping";
+					next;
+				} else {
+					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value . " -> Value changed -> publishing";
+					$data{"present"} = $value;
+					$cache{"$device"}{"present"} = $value;
+					$publish = 1;
+				}
 			}
 			# Publish
-			my $json = encode_json \%data;
-			&mqttpublish($device,$json);
+			if ( $publish ) {
+				my $json = encode_json \%data;
+				&mqttpublish($device,$json);
+			} 
 		}
 	}
 
