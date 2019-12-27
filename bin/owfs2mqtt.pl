@@ -12,7 +12,7 @@ use strict;
 use Data::Dumper;
 
 # Version of this script
-my $version = "0.1.0.1";
+my $version = "0.1.0.2";
 
 # Globals
 my $now;
@@ -170,8 +170,6 @@ while (1) {
 			my $publish = 0;
 			my $device = $_;
 			# Create data structure
-			my $deviceclear = $device;
-			$deviceclear =~ s/\W//g;
 			my $busclear = $bus;
 			$busclear=~ s/^\///;
 			my $uncachedclear;
@@ -180,7 +178,7 @@ while (1) {
 			} else {
 				$uncachedclear = "0";
 			}
-			my %data = ( "address" => "$deviceclear",
+			my %data = ( "address" => "$device",
 					"timestamp" => "$lastvalues",
 					"bus" => "$busclear",
 					"Uncached" => "$uncachedclear"
@@ -188,20 +186,20 @@ while (1) {
 			# Read devices/values
 			my @values = split(/,/,$values{$device});
 			foreach (@values) {
-				my $value = owreadvalue("$uncached" . "$device", "$_");
+				my $value = owreadvalue("$uncached" . "\/$device", "$_");
 				$value =~ s/^\s+//;
 				if ( $cache{"$device"}{"$_"} eq $value ) {
-					LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value . " Not changed -> skipping";
+					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/" . $_ . ": " . $value . " -> Value not changed -> skipping";
 					next;
 				} else {
-					LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value . " Changed -> publishing";
+					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/" . $_ . ": " . $value . " -> Value changed -> publishing";
 					$data{"$_"} = $value;
 					$cache{"$device"}{"$_"} = $value;
 					$publish = 1;
 				}
 			}
 			if ( $present{$device} ) {
-				my $value = owreadpresent("$uncached" . "$device");
+				my $value = owreadpresent("$uncached" . "\/$device");
 				$value =~ s/^\s+//;
 				if ( $cache{"$device"}{"present"} eq $value ) {
 					LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value . " -> Value not changed -> skipping";
@@ -254,7 +252,7 @@ while (1) {
 			}
 			$data{"Uncached"} = $uncachedclear;
 			foreach (@values) {
-				my $value = owreadvalue("$customuncached" . "$device", "$_");
+				my $value = owreadvalue("$customuncached" . "/$device", "$_");
 				$value =~ s/^\s+//;
 				if ( $cache{"$device"}{"$_"} eq $value ) {
 					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value . " -> Value not changed -> skipping";
@@ -267,7 +265,7 @@ while (1) {
 				}
 			}
 			if ( $devcfg->{"$device"}->{"checkpresent"} ) {
-				my $value = owreadpresent("$customuncached" . "$device");
+				my $value = owreadpresent("$customuncached" . "/$device");
 				$value =~ s/^\s+//;
 				if ( $cache{"$device"}{"present"} eq $value ) {
 					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value . " -> Value not changed -> skipping";
@@ -319,7 +317,7 @@ sub readdevices
 	
 	# Add manually configured devices 
 	foreach (keys %$devcfg) {
-		$devices = $devices . "," . $_;
+		$devices = $devices . ",/" . $_;
 	}
 
 	# Set default values
@@ -328,8 +326,8 @@ sub readdevices
 		if ( $_ =~ /^\/bus\.\d*\/(\d){2}.*$/ ) {
 			my $device = $_;
 			$device =~ s/^\/bus\.\d*//s;
-			my ($tmpbus,$family) = split /\./, $_;
-			$family =~ s/^.*\///s;
+			$device =~ s/^\/*//s;
+			my ($family,$address) = split /\./, $device;
 			# Fill hash/array
 			$family{$device} = $family;
 			# Seperate devices with custom config
@@ -528,7 +526,6 @@ sub mqttpublish
 	my $devname = $devcfg->{"$owdevice"}->{"name"};
 	if (!$devname) {
 		$devname = $owdevice;
-		$devname =~ s/^\///;
 	};
 
 	# Publish

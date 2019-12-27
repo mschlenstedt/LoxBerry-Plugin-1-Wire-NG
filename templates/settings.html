@@ -2,11 +2,11 @@
 	.listtable td
 	{
 		vertical-align	:middle;
-		text-align		:center;
+		text-align	:center;
 	}
 	.listtable td img
 	{
-		padding			:5px;
+		padding		:5px;
 	}
 	.lb_flex-item 
 	{	
@@ -255,7 +255,7 @@
 					data-role="button" 
 					data-inline="true" 
 					data-mini="true" 
-					data-icon="search"><TMPL_VAR DEVICES.BUTTON_SEARCH></a>
+					data-icon="search"><TMPL_VAR DEVICES.BUTTON_SCAN></a>
 				<div class="hint" id="search_hint">&nbsp;</div>
 		</div>
 
@@ -264,14 +264,60 @@
 		<!-- Table -->
 		<div id="data-list"></div>
 		
-		<!-- Popup: Device Downloads -->
-		<div data-role="popup" id="popupDownloads" data-dismissible="true" style="width:800px;min-height:600px;" data-theme="a" class="ui-corner-all">
+		<!-- Popup: Delete Device -->
+		<div data-role="popup" id="popupDelete" data-dismissible="true" style="max-width:400px;">
+				<div style="padding: 20px 20px;">
+						<h4 class="ui-title"><TMPL_VAR DEVICES.HINT_DELETE_BRIDGE> <span id="popupdevice"></span>?</h4>
+						<a href="#" id="btndeletedevice" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
+						data-transition="flow"><TMPL_VAR DEVICES.BUTTON_DELETE></a>
+				</div>
+		</div>
+
+		<!-- Popup: Edit Device -->
+		<div data-role="popup" id="popupEdit" data-dismissible="true" style="max-width:800px;" data-theme="a" class="ui-corner-all">
 			<div style="padding: 20px 20px;">
-				<h3 class="ui-title" style="text-align: center;"><TMPL_VAR DEVICES.HINT_VIVO> <span id="popupdevicesdownloadsheader"></span></h3>
-				<div id="popupdevicesdownloadscontent"></div>
-				
+				<h3 class="ui-title"><TMPL_VAR DEVICES.HINT_EDIT_DEVICE> <span id="popupdeviceedit"></span></h3>
+				<form>
+					<label for="editdevicename"><TMPL_VAR DEVICES.LABEL_NAME></label>
+					<input type="text" name="editdevicename" id="editdevicename" value="" 
+					placeholder="<TMPL_VAR DEVICES.LABEL_NAME>" data-theme="a" data-mini="true"
+					data-validation-error-msg="<TMPL_VAR DEVICES.VALERR_INVALID_NAME>" data-validation-rule="^[\w.]+$">
+					<label for="editdeviceaddress"><TMPL_VAR DEVICES.LABEL_ADDRESS></label>
+					<input type="text" name="editdeviceaddress" id="editdeviceaddress" value="" 
+					placeholder="<TMPL_VAR DEVICES.LABEL_ADDRESS>" data-theme="a" data-mini="true"
+					data-validation-error-msg="<TMPL_VAR DEVICES.VALERR_INVALID_ADDRESS>" data-validation-rule="^([0-9]{2})\.([0-9A-Z]{12})$">
+					<label><TMPL_VAR DEVICES.LABEL_CONFIGURED></label>
+					<label for="editdeviceconfigured"><TMPL_VAR DEVICES.LABEL_CONFIGURED></label>
+					<input type="checkbox" name="editdeviceconfigured" id="editdeviceconfigured" data-mini="true">
+					<div class="ui-state-disabled customsettings">
+						<label for="editdevicecheckpresent"><TMPL_VAR DEVICES.LABEL_PRESENT></label>
+						<input type="checkbox" name="editdevicecheckpresent" id="editdevicecheckpresent" data-mini="true">
+						<label for="editdeviceuncached"><TMPL_VAR DEVICES.LABEL_UNCACHED></label>
+						<input type="checkbox" name="editdeviceuncached" id="editdeviceuncached" data-mini="true">
+						<label for="editdevicerefresh"><TMPL_VAR DEVICES.LABEL_REFRESH></label>
+						<input type="text" name="editdevicerefresh" id="editdevicerefresh" value="" 
+						placeholder="<TMPL_VAR DEVICES.LABEL_REFRESH>" data-theme="a" data-mini="true"
+						data-validation-error-msg="<TMPL_VAR DEVICES.VALERR_INVALID_REFRESH>" data-validation-rule="special:numeric">
+						<label for="editdevicevalues"><TMPL_VAR DEVICES.LABEL_VALUES></label>
+						<input type="text" name="editdevicevalues" id="editdevicevalues" value="" 
+						placeholder="<TMPL_VAR DEVICES.LABEL_VALUES>" data-theme="a" data-mini="true"
+						data-validation-error-msg="<TMPL_VAR DEVICES.VALERR_INVALID_VALUES>" data-validation-rule="^[0-9a-zA-Z_,-]*$">
+					</div>
+					<a href="#" id="btneditdevice" data-role="button" data-mini="true" data-icon="check" data-transition="flow">
+					<TMPL_VAR DEVICES.BUTTON_SAVE></a>
+					<div class="hint" id="edit_hint">&nbsp;</div>
+    			</form>
 			</div>
 		</div>
+
+		<script>
+			// Validation
+			validate_enable('#editdevicename');
+			validate_enable('#editdeviceaddress');
+			validate_enable('#editdevicerefresh');
+			validate_enable('#editdevicevalues');
+		</script>
+
 	</div> <!-- main -->
 
 </TMPL_IF>
@@ -309,8 +355,7 @@
 			</div>
 			<div	class="lb_flex-item-spacer"></div>
 			<div	class="lb_flex-item">
-					<input type="checkbox" name="MQTTUseMQTTGateway" id="MQTTUseMQTTGateway">
-				</fieldset>
+				<input type="checkbox" name="MQTTUseMQTTGateway" id="MQTTUseMQTTGateway">
 			</div>
 			<div	class="lb_flex-item-spacer"></div>
 			<div	class="lb_flex-item-help hint">
@@ -407,8 +452,8 @@
 			</div>
 			<div	class="lb_flex-item-spacer"></div>
 			<div	class="lb_flex-item">
-			<a href="javascript:saveMQTT();" id="btnsavemqtt" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check" 
-						data-transition="flow"><TMPL_VAR MQTT.BUTTON_SAVE></a>
+			<a href="javascript:saveMQTT();" id="btnsavemqtt" data-role="button" data-icon="check" data-transition="flow">
+				<TMPL_VAR MQTT.BUTTON_SAVE></a>
 			<div class="hint" id="mqtt_hint">&nbsp;</div>
 			</div>
 			<div	class="lb_flex-item-spacer"></div>
@@ -463,29 +508,27 @@ $(function() {
 		$('#btnsearchdevices').trigger("click");
 	}
 	
-	// <TMPL_IF MQTTGATEWAY_PLUGINDBFOLDER>
-		$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank"><TMPL_VAR MQTT.LABEL_MQTT_GATEWAY_LINK></a>');
-	// </TMPL_IF>
+	// MQTT Gateway button / url
+	$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank"><TMPL_VAR MQTT.LABEL_MQTT_GATEWAY_LINK></a>');
 
-	// Eventhandlers for "Add" to enable and disable validation
-	$("#popupAddButton").click( function(e) {
-		allFormInputs = $("#popupAdd").find(":input");
-		allFormInputs.map(function(index,dom){validate_enable("#"+dom.id)});
-		console.log("popupAddButton: Found "+allFormInputs.length+" form inputs");
-	});
-	$("#popupAdd").on( "popupafterclose" , function(e) {
-		allFormInputs = $("#popupAdd").find(":input");
-		allFormInputs.map(function(index,dom){validate_clean_objects("#"+dom.id)});
-		allFormInputs.map(function(index,dom){$("#error-msg-"+dom.id).remove()});
-		console.log("popupAdd afterclose: Found "+allFormInputs.length+" form inputs");
-	});
+	// Eventhandlers for "Edit" to enable and disable validation
+//	$("#popupEditButton").click( function(e) {
+//		allFormInputs = $("#popupEdit").find(":input");
+//		allFormInputs.map(function(index,dom){validate_enable("#"+dom.id)});
+//		console.log("popupEditButton: Found "+allFormInputs.length+" form inputs");
+//	});
+//	$("#popupEdit").on( "popupafterclose" , function(e) {
+//		allFormInputs = $("#popupEdit").find(":input");
+//		allFormInputs.map(function(index,dom){validate_clean_objects("#"+dom.id)});
+//		allFormInputs.map(function(index,dom){$("#error-msg-"+dom.id).remove()});
+//		console.log("popupEdit afterclose: Found "+allFormInputs.length+" form inputs");
+//	});
 	// The btnbrideedit event handler is in getConfig (as it is generated dynamically
 	
 });
 
 function update_pids()
 {
-
 
 	$.ajax( { 
 			type: 'POST',
@@ -519,7 +562,6 @@ function update_pids()
 	})
 	.always(function(resp) {
 		console.log( "owfsform getpids", "finished", resp );
-
 	});
 
 }
@@ -586,7 +628,7 @@ $('#btnsearchdevices').click( function(e) {
 	$("#search_hint").attr("style", "color:blue;").html("<TMPL_VAR DEVICES.HINT_SEARCH_WAIT>");
 	$.ajax( { 
 			type: 'POST',
-			data: { ajax: 'searchdevices', secpin: secpin }
+			data: { ajax: 'searchdevices' }
 		} )
 	.fail(function( data ) {
 		console.log( "searchdevices Fail", data );
@@ -594,10 +636,6 @@ $('#btnsearchdevices').click( function(e) {
 	})
 	.done(function( data ) {
 		console.log( "searchdevices Success: ", data );
-		if(data.secpinerror) {
-			securePINwrong();
-			return;
-		}
 		$("#search_hint").attr("style", "color:green").html("<TMPL_VAR DEVICES.HINT_SEARCH_DONE>");
 		getconfig();
 	})
@@ -645,22 +683,22 @@ function saveOWFS() {
 	$("#owfs_hint").attr("style", "color:blue").html("<TMPL_VAR OWFS.HINT_SAVE_SAVING>");
 	console.log ("Saving OWFS settings");
 	$.ajax( { 
-			type: 'POST',
-			data: { 
-				ajax: 'saveowfs', 
-				fake: $('#fake').val(),
-				usb: $('#usb').is(":checked"),
-				serial2usb: $('#serial2usb').is(":checked"),
-				i2c: $('#i2c').is(":checked"),
-				gpio: $('#gpio').is(":checked"),
-				httpdport: $('#httpdport').val(),
-				serverport: $('#serverport').val(),
-				tempscale: $('#tempscale').val(),
-				refreshdev: $('#refreshdev').val(),
-				refreshval: $('#refreshval').val(),
-				uncached: $('#uncached').val(),
-			}
-		} )
+		type: 'POST',
+		data: { 
+			ajax: 'saveowfs', 
+			fake: $('#fake').val(),
+			usb: $('#usb').is(":checked"),
+			serial2usb: $('#serial2usb').is(":checked"),
+			i2c: $('#i2c').is(":checked"),
+			gpio: $('#gpio').is(":checked"),
+			httpdport: $('#httpdport').val(),
+			serverport: $('#serverport').val(),
+			tempscale: $('#tempscale').val(),
+			refreshdev: $('#refreshdev').val(),
+			refreshval: $('#refreshval').val(),
+			uncached: $('#uncached').val(),
+		}
+	})
 	.fail(function( data ) {
 		console.log( "saveowfs Fail", data );
 		$("#owfs_hint").attr("style", "color:red").html("<TMPL_VAR OWFS.HINT_SAVE_ERROR>: "+data.statusText);
@@ -697,181 +735,168 @@ function getconfig() {
 		return;
 	}
 		
-		// Ajax request
-		$.ajax({ 
-			type: 'POST',
-			data: { ajax: 'getconfig', config: form }
-		})
-		.fail(function( data ) {
-			console.log( "getconfig Fail", data );
-		})
-		.done(function( data ) {
-			console.log( "getconfig Success", data );
-			if(data.secpinerror) {
-				securePINwrong();
+	// Ajax request
+	$.ajax({ 
+		type: 'POST',
+		data: { ajax: 'getconfig', config: form }
+	})
+	.fail(function( data ) {
+		console.log( "getconfig Fail", data );
+	})
+	.done(function( data ) {
+		console.log( "getconfig Success", data );
+		$("#main").css( 'visibility', 'visible' );
+
+		if ( formdevices ) {
+			console.log( "Parse Item for Devices form" );
+			$('#data-list').empty();
+			if ( data.error || jQuery.isEmptyObject(data)) {
+				$('#data-list').html("<TMPL_VAR DEVICES.ERROR_NO_DEVICES_DEFINED>");
+				storedDevices = undefined;
 				return;
 			}
-			$("#main").css( 'visibility', 'visible' );
-
-			if ( formdevices ) {
-				console.log( "Parse Item for Devices form" );
-				$('#data-list').empty();
-				if ( data.error || jQuery.isEmptyObject(data)) {
-					$('#data-list').html("<TMPL_VAR DEVICES.ERROR_NO_DEVICES_DEFINED>");
-					storedDevices = undefined;
-					return;
-				}
-				storedDevices = data;
-				// Create table
-				var table = $('<table width="100%" data-role="table" id="devicestable" data-mode="reflow" class="ui-responsive table-stroke listtable">').appendTo('#data-list');
-				// Add the header row
-				var theader = $('<thead />').appendTo(table);
-					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_TYPE>' }).appendTo(theader);
-					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_NUKIID>' }).appendTo(theader);
-					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_NAME>' }).appendTo(theader);
-					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_BRIDGEID>' }).appendTo(theader);
-					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_PAIRED>' }).appendTo(theader);
-					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_RSSI>' }).appendTo(theader);
-					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_ACTIONS>' }).appendTo(theader);
-				// Create table body.
-				var tbody = $('<tbody />').appendTo(table);
-				// Add the data rows to the table body.
-				$.each( data, function( intBridgeId, item){
-					var row = $('<tr />').appendTo(tbody);
-					switch(item.deviceType) {
-						case 0: $('<td />', { html: '<img src="./images/nuki-smart-lock.svg" alt="'+DEVICETYPE[item.deviceType]+'" height="32"></img>' }).appendTo(row); break;
-						case 2: $('<td />', { html: '<img src="./images/nuki-opener.svg" alt="'+DEVICETYPE[item.deviceType]+'" height="32"></img>' }).appendTo(row); break;
-						default:  $('<td />', { html: '<img src="./images/nuki-unknown.svg" alt="unknown" height="32"></img>' }).appendTo(row);
-					}
-					$('<td />', { text: item.nukiId }).appendTo(row);
-					$('<td />', { text: item.name }).appendTo(row);
-					$('<td />', { text: item.bridgeId }).appendTo(row);
-					$('<td />', { text: ( item.paired == true ? '<TMPL_VAR COMMON.YES>' : '<TMPL_VAR COMMON.NO>' ) }).appendTo(row);
-					// Formular out_min+(rssi-in_min)*(out_max-out_min)/(in_max-in_min)
-					rssicol = item.rssi ? numberToColorHsl( 100+(item.rssi+40)*(0-100)/(-100+40) ) : "transparent";
-					$('<td />', { html: '<span style="background-color:'+rssicol+'">&nbsp;'+item.rssi+'&nbsp;</span>' }).appendTo(row);
-					$('<td />', { html: '\
-					<span class="deviceVOdownload" data-intbridgeid="'+item.bridgeId+'" data-nukiid="'+item.nukiId+'"><a href="#" id="btndeviceVOdownload'+item.nukiId+'" name="btndeviceVOdownload'+item.nukiId+'" \
-					title="<TMPL_VAR DEVICES.BUTTON_VIVO>"> \
-					<img src="./images/devices_vo_download_32.png" height="32"></img></a></span> \
-					' }).appendTo(row);
-					
+			storedDevices = data;
+			// Create table
+			var table = $('<table width="100%" data-role="table" id="devicestable" data-mode="reflow" class="ui-responsive table-stroke listtable">').appendTo('#data-list');
+			// Add the header row
+			var theader = $('<thead />').appendTo(table);
+				$('<th style="text-align:left;"><TMPL_VAR DEVICES.LABEL_NAME><\/th>').appendTo(theader);
+				$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_ADDRESS>' }).appendTo(theader);
+				$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_TYPE>' }).appendTo(theader);
+				$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_CONFIGURED>' }).appendTo(theader);
+				$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_UNCACHED>' }).appendTo(theader);
+				$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_REFRESH>' }).appendTo(theader);
+				$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_PRESENT>' }).appendTo(theader);
+				$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_VALUES>' }).appendTo(theader);
+				$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_ACTIONS>' }).appendTo(theader);
+			// Create table body.
+			var tbody = $('<tbody />').appendTo(table);
+			// Add the data rows to the table body.
+			$.each( data, function( intDevId, item){
+				var row = $('<tr />').appendTo(tbody);
+				$('<td style="text-align:left;">'+item.name+'<\/td>').appendTo(row);
+				$('<td />', { text: item.address }).appendTo(row);
+				$('<td />', { text: item.type }).appendTo(row);
+				$('<td />', { text: ( item.configured == true ? '<TMPL_VAR COMMON.YES>' : '<TMPL_VAR COMMON.NO>' ) }).appendTo(row);
+				$('<td />', { text: ( item.uncached == true ? '<TMPL_VAR COMMON.YES>' : '<TMPL_VAR COMMON.NO>' ) }).appendTo(row);
+				$('<td />', { text: item.refresh }).appendTo(row);
+				$('<td />', { text: ( item.checkpresent == true ? '<TMPL_VAR COMMON.YES>' : '<TMPL_VAR COMMON.NO>' ) }).appendTo(row);
+				$('<td />', { text: item.values }).appendTo(row);
+				$('<td />', { html: '\
+				<a href="javascript:askEditDevice(\'' + intDevId + '\')" class="btndeviceedit" id="btndeviceedit'+item.address+'" name="btndeviceeedit'+item.address+'" \
+                                title="<TMPL_VAR DEVICES.BUTTON_EDIT> ' + item.address + '"> \
+                                <img src="./images/gear_32.png" height="32"></img></a> \
+                                \
+                                <a href="javascript:askDeleteDevice(\'' + intDevId + '\')" id="btndevicedelete'+item.address+'" name="btndevicedelete'+item.address+'" \
+                                title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + item.address + '"> \
+                                <img src="./images/cancel_32.png" height="32"></img></a> \
+                                ' }).appendTo(row);
+                                $(row).trigger("create");
 				});
-				
-				// Create event handler for Download details
-					$(".deviceVOdownload").on('click', function(e) {
-						console.log("Device VO download", $(this).attr("data-nukiid"), $(this).attr("data-intbridgeId"));
-						// deviceVOdownload( $(this).attr("data-intbridgeid"), $(this).attr("data-nukiid") );
-						deviceDownloads ( $(this).attr("data-intbridgeid"), $(this).attr("data-nukiid") );
-					});
-					
-				//$("#data-list").trigger("create");
-			};
-			
-			if ( formmqtt ) {
-				console.log( "Parse Item for MQTT form" );
-				// Fill the form with json data retrieved from the ajax getconfig call
-				if ( data.error || jQuery.isEmptyObject(data)) {
-					console.log("mqtt.json is empty, does not exist or is invalid.");
-				}
-				if(data.topic) {
-					$("#MQTTTopic").val(data.topic);
-				} else {
-					$("#MQTTTopic").val('owfs');
-				}
-				if(data.usemqttgateway === "true") {
-					$("#MQTTUseMQTTGateway").prop('checked', true).checkboxradio("refresh");
-				} else {
-					$("#MQTTUseMQTTGateway").prop('checked', false).checkboxradio("refresh");
-				}
-				if(data.server) {
-					$("#BrokerServer").val(data.server);
-				} else {
-					$("#BrokerServer").val('');
-				}
-				if(data.port) {
-					$("#BrokerPort").val(data.port);
-				} else {
-					$("#BrokerPort").val('');
-				}
-				if(data.username) {
-					$("#BrokerUsername").val(data.username);
-				} else {
-					$("#BrokerUsername").val('');
-				}
-				if(data.password) {
-					$("#BrokerPassword").val(data.password);
-				} else {
-					$("#BrokerPassword").val('');
-				}
-				
-				refreshMQTTForm();
 			};
 
-			if ( formowfs ) {
-				console.log( "Parse Item for OWFS form" );
-				// Fill the form with json data retrieved from the ajax getconfig call
-				if ( data.error || jQuery.isEmptyObject(data)) {
-					console.log("owfs.json is empty, does not exist or is invalid.");
-				}
-				if(data.fake) {
-					$("#fake").val(data.fake);
-				} else {
-					$("#fake").val('');
-				}
-				if(data.httpdport) {
-					$("#httpdport").val(data.httpdport);
-				} else {
-					$("#httpdport").val('2121');
-				}
-				if(data.serverport) {
-					$("#serverport").val(data.serverport);
-				} else {
-					$("#serverport").val('4304');
-				}
-				if(data.usb === "true") {
-					$("#usb").prop('checked', true).checkboxradio("refresh");
-				} else {
-					$("#usb").prop('checked', false).checkboxradio("refresh");
-				}
-				if(data.serial2usb === "true") {
-					$("#serial2usb").prop('checked', true).checkboxradio("refresh");
-				} else {
-					$("#serial2usb").prop('checked', false).checkboxradio("refresh");
-				}
-				if(data.i2c === "true") {
-					$("#i2c").prop('checked', true).checkboxradio("refresh");
-				} else {
-					$("#i2c").prop('checked', false).checkboxradio("refresh");
-				}
-				if(data.gpio === "true") {
-					$("#gpio").prop('checked', true).checkboxradio("refresh");
-				} else {
-					$("#gpio").prop('checked', false).checkboxradio("refresh");
-				}
-				if(data.tempscale === "C") {
-					$("#tempscale").val("C").change();
-				} else {
-					$("#tempscale").val("F").change();
-				}
-				if(data.uncached === "true") {
-					$("#uncached").prop('checked', true).checkboxradio("refresh");
-				} else {
-					$("#uncached").prop('checked', false).checkboxradio("refresh");
-				}
-				if(data.refreshdev) {
-					$("#refreshdev").val(data.refreshdev);
-				} else {
-					$("#refreshdev").val('300');
-				}
-				if(data.refreshval) {
-					$("#refreshval").val(data.refreshval);
-				} else {
-					$("#refreshval").val('60');
-				}
-				
-				refreshOWFSForm();
-			};
+		if ( formmqtt ) {
+			console.log( "Parse Item for MQTT form" );
+			// Fill the form with json data retrieved from the ajax getconfig call
+			if ( data.error || jQuery.isEmptyObject(data)) {
+				console.log("mqtt.json is empty, does not exist or is invalid.");
+			}
+			if(data.topic) {
+				$("#MQTTTopic").val(data.topic);
+			} else {
+				$("#MQTTTopic").val('owfs');
+			}
+			if(data.usemqttgateway === "true") {
+				$("#MQTTUseMQTTGateway").prop('checked', true).checkboxradio("refresh");
+			} else {
+				$("#MQTTUseMQTTGateway").prop('checked', false).checkboxradio("refresh");
+			}
+			if(data.server) {
+				$("#BrokerServer").val(data.server);
+			} else {
+				$("#BrokerServer").val('');
+			}
+			if(data.port) {
+				$("#BrokerPort").val(data.port);
+			} else {
+				$("#BrokerPort").val('');
+			}
+			if(data.username) {
+				$("#BrokerUsername").val(data.username);
+			} else {
+				$("#BrokerUsername").val('');
+			}
+			if(data.password) {
+				$("#BrokerPassword").val(data.password);
+			} else {
+				$("#BrokerPassword").val('');
+			}
+			refreshMQTTForm();
+		};
+
+		if ( formowfs ) {
+			console.log( "Parse Item for OWFS form" );
+			// Fill the form with json data retrieved from the ajax getconfig call
+			if ( data.error || jQuery.isEmptyObject(data)) {
+				console.log("owfs.json is empty, does not exist or is invalid.");
+			}
+			if(data.fake) {
+				$("#fake").val(data.fake);
+			} else {
+				$("#fake").val('');
+			}
+			if(data.httpdport) {
+				$("#httpdport").val(data.httpdport);
+			} else {
+				$("#httpdport").val('2121');
+			}
+			if(data.serverport) {
+				$("#serverport").val(data.serverport);
+			} else {
+				$("#serverport").val('4304');
+			}
+			if(data.usb === "true") {
+				$("#usb").prop('checked', true).checkboxradio("refresh");
+			} else {
+				$("#usb").prop('checked', false).checkboxradio("refresh");
+			}
+			if(data.serial2usb === "true") {
+				$("#serial2usb").prop('checked', true).checkboxradio("refresh");
+			} else {
+				$("#serial2usb").prop('checked', false).checkboxradio("refresh");
+			}
+			if(data.i2c === "true") {
+				$("#i2c").prop('checked', true).checkboxradio("refresh");
+			} else {
+				$("#i2c").prop('checked', false).checkboxradio("refresh");
+			}
+			if(data.gpio === "true") {
+				$("#gpio").prop('checked', true).checkboxradio("refresh");
+			} else {
+				$("#gpio").prop('checked', false).checkboxradio("refresh");
+			}
+			if(data.tempscale === "C") {
+				$("#tempscale").val("C").change();
+			} else {
+				$("#tempscale").val("F").change();
+			}
+			if(data.uncached === "true") {
+				$("#uncached").prop('checked', true).checkboxradio("refresh");
+			} else {
+				$("#uncached").prop('checked', false).checkboxradio("refresh");
+			}
+			if(data.refreshdev) {
+				$("#refreshdev").val(data.refreshdev);
+			} else {
+				$("#refreshdev").val('300');
+			}
+			if(data.refreshval) {
+				$("#refreshval").val(data.refreshval);
+			} else {
+				$("#refreshval").val('60');
+			}
+			refreshOWFSForm();
+		};
 
 
 		})
@@ -881,7 +906,7 @@ function getconfig() {
 		})
 }
 
-
+// Refresh MQTT Form
 function refreshMQTTForm() {
 	console.log("refreshMQTTForm");
 	$(".MQTT").removeClass("ui-state-disabled");
@@ -890,16 +915,123 @@ function refreshMQTTForm() {
 	else 
 		$(".ownbroker").removeClass("ui-state-disabled");
 }
-
 $("#MQTTUseMQTTGateway").on("click", refreshMQTTForm);
 
+// Refresh OWFS Form
 function refreshOWFSForm() {
 	console.log("refreshOWFSForm");
 	$(".OWFS").removeClass("ui-state-disabled");
 }
 
+// Open OWFS WebUI
 function openOWFS() {
 	window.open( location.protocol + '//' + location.host + ':' + $("#httpdport").val(), "_blank" );
 }
+
+// Delete Device (Question)
+function askDeleteDevice( data ) {
+	$("#popupdevice").html(data);
+	$("#btndeletedevice").attr("href", 'javascript:deleteDevice(\'' + data + '\');');
+	$("#popupDelete").popup("open");
+}
+
+// Delete Device
+function deleteDevice( data ) {
+	$.ajax( { 
+			type: 'POST',
+			data: { ajax: 'deletedevice', device: data }
+		} )
+	.fail(function( data ) {
+		console.log( "deletedevice Fail", data );
+	})
+	.done(function( data ) {
+		console.log( "deletedevice Success: ", data );
+		getconfig();
+	})
+	.always(function( data ) {
+		$("#popupDelete").popup("close");
+		console.log( "deletedevice Finished" );
+	});
+}
+
+// Edit Devices (Question)
+function askEditDevice( data ) {
+	$("#popupdeviceedit").html(data);
+	$("#btneditdevice").attr("href", 'javascript:editDevice(\'' + data + '\');');
+	$.ajax( { 
+		type: 'POST',
+		data: { ajax: 'getdeviceconfig', device: data }
+	} )
+	.fail(function( data ) {
+		console.log( "getdeviceconfig Fail", data );
+	})
+	.done(function( data ) {
+		console.log( "getdeviceconfig Success: ", data );
+		$('#editdeviceaddress').val( data.address);
+		$('#editdevicename').val( data.name);
+		$('#editdevicevalues').val( data.values);
+		$('#editdevicerefresh').val( data.refresh);
+		if(data.configured != 0) {
+			$("#editdeviceconfigured").prop('checked', true).checkboxradio("refresh");
+		} else {
+			$("#editdeviceconfigured").prop('checked', false).checkboxradio("refresh");
+		}
+		if(data.uncached != 0) {
+			$("#editdeviceuncached").prop('checked', true).checkboxradio("refresh");
+		} else {
+			$("#editdeviceuncached").prop('checked', false).checkboxradio("refresh");
+		}
+		if(data.checkpresent != 0) {
+			$("#editdevicecheckpresent").prop('checked', true).checkboxradio("refresh");
+		} else {
+			$("#editdevicecheckpresent").prop('checked', false).checkboxradio("refresh");
+		}
+		refreshDeviceForm();
+		$("#popupEdit").popup("open");
+	})
+}
+
+// Edit Devices
+function editDevice() {
+	$("#edit_hint").attr("style", "color:blue").html("<TMPL_VAR DEVICES.HINT_SAVE_SAVING>");
+	console.log ("Saving Device settings");
+	$.ajax( { 
+		type: 'POST',
+		data: { 
+			ajax: 'savedevice', 
+			device: $("#popupdeviceedit").html(),
+			address: $('#editdeviceaddress').val(),
+			name: $('#editdevicename').val(),
+			values: $('#editdevicevalues').val(),
+			refresh: $('#editdevicerefresh').val(),
+			configured: $('#editdeviceconfigured').is(":checked"),
+			uncached: $('#editdeviceuncached').is(":checked"),
+			checkpresent: $('#editdevicecheckpresent').is(":checked"),
+		}
+	})
+	.fail(function( data ) {
+		console.log( "savedevice Fail", data );
+		$("#edit_hint").attr("style", "color:red").html("<TMPL_VAR DEVICES.HINT_SAVE_ERROR>: "+data.statusText);
+	})
+	.done(function( data ) {
+		console.log( "savedevice Success: ", data );
+		$("#edit_hint").attr("style", "color:green").html("<TMPL_VAR DEVICES.HINT_SAVE_OK>");
+		getconfig();
+	})
+	.always(function( data ) {
+		console.log( "savedevice Finished" );
+	});
+}
+
+// Refresh EditDevice Form
+function refreshDeviceForm() {
+	console.log("refreshDeviceForm");
+	$("#edit_hint").html("");
+	if( $("#editdeviceconfigured").is(":checked") ) 
+		$(".customsettings").removeClass("ui-state-disabled");
+	else 
+		$(".customsettings").addClass("ui-state-disabled");
+}
+$("#editdeviceconfigured").on("click", refreshDeviceForm);
 
 </script>

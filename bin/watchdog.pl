@@ -10,7 +10,7 @@ use strict;
 use Data::Dumper;
 
 # Version of this script
-my $version = "0.1.0";
+my $version = "0.1.0.1";
 
 # Command line options
 my $cgi = CGI->new;
@@ -43,7 +43,7 @@ LOGSTART "Starting Watchdog";
 
 # Root
 if ($<) {
-        print "This script has to be run as root.\n";
+	$log->stdout(1);
         LOGERR "This script has to be run as root.";
         exit (1);
 }

@@ -33,13 +33,15 @@ apt-get update
 echo "<INFO> Installing owserver from Testing branch (stable branch is broken in Debian Buster)..."
 apt-get --no-install-recommends -q -y --allow-unauthenticated --fix-broken --reinstall --allow-downgrades --allow-remove-essential --allow-change-held-packages -t testing install owfs owserver owhttpd owftpd owfs-fuse owfs-common owserver libow-3.2-3 libftdi1-2
 
-echo "<INFO> Stopping and disabling OWFS services..."
+echo "<INFO> Stopping and reconfigure OWFS services..."
 systemctl stop owserver
 systemctl stop owfs
 systemctl stop owftpd
 systemctl stop owhttpd
 systemctl disable owfs
 systemctl disable owftpd
+systemctl enable owserver
+systemctl enable owhttpd
 
 echo "<INFO> Installing OWFS Configuration..."
 mv /etc/owfs.conf /etc/owfs.conf.orig

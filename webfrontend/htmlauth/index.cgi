@@ -59,9 +59,6 @@ my $CFGFILEOWFS = $lbpconfigdir . "/owfs.json";
 # AJAX
 ##########################################################################
 
-# Prevent reading configs from others
-#system("chmod 0600 $lbpconfigdir/*.json");
-
 if( $q->{ajax} ) {
 	
 	## Handle all ajax requests 
@@ -81,6 +78,13 @@ if( $q->{ajax} ) {
 		$response{error} = &saveowfs();
 		print JSON->new->canonical(1)->encode(\%response);
 	}
+	
+	# Save Device Settings
+	if( $q->{ajax} eq "savedevice" ) {
+		$response{error} = &savedevice();
+		print JSON->new->canonical(1)->encode(\%response);
+	}
+
 
 	# Get pids
 	if( $q->{ajax} eq "getpids" ) {
@@ -112,6 +116,29 @@ if( $q->{ajax} ) {
 	# Scan Devices
 	if( $q->{ajax} eq "searchdevices" ) {
 		$response{error} = &searchdevices();
+		print JSON->new->canonical(1)->encode(\%response);
+	}
+	
+	# Delete Devices
+	if( $q->{ajax} eq "deletedevice" ) {
+		if ( !$q->{device} ) {
+			$response{error} = "1";
+			$response{message} = "No device given";
+		}
+		$response{error} = &deletedevice($q->{device});
+		print JSON->new->canonical(1)->encode(\%response);
+	}
+	
+	# Get single device config
+	if( $q->{ajax} eq "getdeviceconfig" ) {
+		if ( !$q->{device} ) {
+			$response{error} = "1";
+			$response{message} = "No device given";
+		}
+		else {
+			# Get config
+			%response = &getdeviceconfig ( $q->{device} );
+		}
 		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
@@ -256,111 +283,107 @@ sub pids
 	return();
 }
 
-sub deletebridge
+sub deletedevice
 {
-# 	my $bridgeid = $_[0];
-# 	my $errors;
-# 	if (!$bridgeid) {
-# 		$errors++;
-# 	} else {
-# 		my ($error, $message) = callback_uninstall($bridgeid);
-# 		my $jsonobj = LoxBerry::JSON->new();
-# 		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
-# 		delete $cfg->{$bridgeid};
-# 		$jsonobj->write();
-# 	}
-# 	return ($errors);
+ 	my $device = $_[0];
+ 	my $errors;
+ 	if (!$device) {
+ 		$errors++;
+ 	} else {
+ 		# Devices config
+ 		my $jsonobjdevices = LoxBerry::JSON->new();
+ 		my $cfgdevices = $jsonobjdevices->open(filename => $CFGFILEDEVICES);
+ 		delete $cfgdevices->{$device};
+ 		$jsonobjdevices->write();
+ 	}
+ 	return ($errors);
 }
 
-sub editbridge
+sub getdeviceconfig
 {
-# 	my $bridgeid = $_[0];
-# 	my %response;
-# 	if (!$bridgeid) {
-# 		LOGINF "P$$ editbridge: No Bridge ID given.";
-# 		$response{error} = 1;
-# 		$response{message} = "No Bridge ID given.";
-# 	} else {
-# 		LOGINF "P$$ editbridge: Editing Bridge data for $bridgeid.";
-# 		my $jsonobj = LoxBerry::JSON->new();
-# 		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
-# 		if ($cfg->{$bridgeid}) {
-# 			LOGINF "P$$ editbridge: Found Bridge: Saving new data.";
-# 			$cfg->{$bridgeid}->{ip} = $q->{bridgeip};
-# 			$cfg->{$bridgeid}->{port} = $q->{bridgeport};
-# 			$cfg->{$bridgeid}->{token} = $q->{bridgetoken};
-# 			$jsonobj->write();
-# 			if( $cfg->{$bridgeid}->{token} ) {
-# 				checktoken($bridgeid);
-# 			}
-# 			$response{error} = 0;
-# 			$response{message} = "Bridge saved successfully.";
-# 			# Check Callbacks
-# 			my ($cberror, $cbmessage) = callback( $bridgeid );
-# 			$response{message} = $response{message} . " / " . $cbmessage;
-# 			if ( $cberror ) {
-# 				$response{error} = 1;
-# 			}
-# 		} else {
-# 			LOGINF "P$$ editbridge: Bridge does not exist.";
-# 			$response{error} = 1;
-# 			$response{message} = "Bridge does not exist.";
-# 		}
-# 	}
-# 	return (%response);
+	my $device = $_[0];
+	my %response;
+	if (!$device) {
+		$response{error} = 1;
+		$response{message} = "No device given.";
+	} else {
+		my $jsonobjdevices = LoxBerry::JSON->new();
+		my $cfgdevices = $jsonobjdevices->open(filename => $CFGFILEDEVICES);
+		if ($cfgdevices->{$device}) {
+			$response{address} = $cfgdevices->{$device}->{address};
+			$response{name} = $cfgdevices->{$device}->{name};
+			$response{configured} = $cfgdevices->{$device}->{configured};
+			$response{refresh} = $cfgdevices->{$device}->{refresh};
+			$response{uncached} = $cfgdevices->{$device}->{uncached};
+			$response{values} = $cfgdevices->{$device}->{values};
+			$response{checkpresent} = $cfgdevices->{$device}->{checkpresent};
+			$response{error} = 0;
+			$response{message} = "Device data read successfully.";
+		} else {
+			$response{error} = 1;
+			$response{message} = "Device does not exist.";
+		}
+	}
+	return (%response);
 }
 
-sub addbridge
+sub savedevice
 {
-# 	my %response;
-# 	
-# 	if (!$q->{bridgeid}) {
-# 	# Generate random internal bridge id (intBridgeId)
-# 		$q->{bridgeid} = "9" . int(rand(999999999));
-# 	}
-# 	
-# 	LOGINF "P$$ addbridge: Add new Bridge.";
-# 	# if (!$q->{bridgeid}) {
-# 		# LOGINF "addbridge: No BridgeID given.";
-# 		# $response{error} = 1;
-# 		# $response{message} = "No BridgeID given.";
-# 	# } else {
-# 		my $jsonobj = LoxBerry::JSON->new();
-# 		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
-# 		if ($cfg->{$q->{bridgeid}}) {
-# 			LOGINF "P$$ addbridge: Bridge already exists.";
-# 			$response{error} = 1;
-# 			$response{message} = "Bridge already exists.";
-# 		} else {
-# 			$cfg->{$q->{bridgeid}}->{bridgeId} = "";
-# 			$cfg->{$q->{bridgeid}}->{discoveryBridgeId} = "";
-# 			$cfg->{$q->{bridgeid}}->{intBridgeId} = $q->{bridgeid};
-# 			
-# 			$cfg->{$q->{bridgeid}}->{ip} = $q->{bridgeip};
-# 			$cfg->{$q->{bridgeid}}->{port} = $q->{bridgeport};
-# 			$cfg->{$q->{bridgeid}}->{token} = $q->{bridgetoken};
-# 			$jsonobj->write();
-# 			if( $cfg->{$q->{bridgeid}}->{token} ) {
-# 				checktoken($q->{bridgeid});
-# 			}
-# 			$response{error} = 0;
-# 			$response{message} = "New Bridge saved successfully.";
-# 			# Check Callbacks
-# 			my ($cberror, $cbmessage) = callback( $q->{bridgeid} );
-# 			$response{message} = $response{message} . " / " . $cbmessage;
-# 			if ( $cberror ) {
-# 				$response{error} = 1;
-# 			}
-# 		}
-# 	# }
-# 	return (%response);
+	my $errors;
+	
+	# Devices Config
+	my $jsonobjdevices = LoxBerry::JSON->new();
+	my $cfgdevices = $jsonobjdevices->open(filename => $CFGFILEDEVICES);
+	my $address = $q->{address};
+	
+	# OWFS Config
+	my $jsonobjow = LoxBerry::JSON->new();
+	my $cfgow = $jsonobjow->open(filename => $CFGFILEOWFS);
+ 	
+	# Delete old entries - in case of a Address change delete device and (new) address
+	delete $cfgdevices->{$q->{device}};
+	delete $cfgdevices->{$q->{address}};
+	
+	# Connect to owserver
+	my $owserver;
+	eval {
+		$owserver = OWNet->new('localhost:' . $cfgow->{"serverport"} . " -v -" .$cfgow->{"tempscale"} );
+	};
+	if ($@ || !$owserver) {
+		$errors++;
+	};
+
+	# Check Type
+	my $type;
+	eval {
+		$type = $owserver->read("/$address/type");
+	};
+	if ($@ || !$type) {
+		$errors++;
+		$type = "Unknown";
+	};
+	
+	# Save
+	$cfgdevices->{$address}->{name} = $q->{name};
+	$cfgdevices->{$address}->{address} = $q->{address};
+	my $configured =  is_enabled ($q->{configured}) ? 1 : 0;
+	$cfgdevices->{$address}->{configured} = $configured;
+	$cfgdevices->{$address}->{refresh} = $q->{refresh};
+	my $uncached =  is_enabled ($q->{uncached}) ? 1 : 0;
+	$cfgdevices->{$address}->{uncached} = $uncached;
+	my $checkpresent =  is_enabled ($q->{checkpresent}) ? 1 : 0;
+	$cfgdevices->{$address}->{checkpresent} = $checkpresent;
+	$cfgdevices->{$address}->{values} = $q->{values};
+	$cfgdevices->{$address}->{type} = $type;
+	$jsonobjdevices->write();
+
+	return ($errors);
 }
 
 sub searchdevices
 {
  	my $errors;
 	use OWNet;
-	use Data::Dumper;
 	
  	# Devices config
  	my $jsonobjdevices = LoxBerry::JSON->new();
@@ -393,34 +416,35 @@ sub searchdevices
 		return($errors);
 	};
 	
-	print STDERR "Devices: $devices\n";
 	my @devices = split(/,/,$devices);
 	for ( @devices ) {
 		if ( $_ =~ /^\/(\d){2}.*$/ ) {
 			my $name = $_;
 			$name =~ s/^\///g;
-			print STDERR "Parse $name\n";
 			# Check if config already exists
 			if ( $cfgdevices->{$name} ) {
-				print STDERR "Next - $name already exists\n";
 				next;
 			} else {
 				# Add device to config
-				print STDERR "Add $name\n";
+				my $type;
+				eval {
+					$type = $owserver->read("/$name/type");
+				};
+				if ($@ || !$type) {
+					$errors++;
+					$type = "Unknown";
+				};
 				$cfgdevices->{$name}->{name} = "$name";
 				$cfgdevices->{$name}->{address} = "$name";
+				$cfgdevices->{$name}->{type} = "$type";
 				$cfgdevices->{$name}->{configured} = "0";
 				$cfgdevices->{$name}->{refresh} = "60";
 				$cfgdevices->{$name}->{uncached} = "0";
 				$cfgdevices->{$name}->{checkpresent} = "0";
 				$cfgdevices->{$name}->{values} = "";
-				print STDERR "Result: " . $cfgdevices->{$name}->{name} . "\n";
 			}
 		}
 	}
-
-	print STDERR Dumper($cfgdevices);
-	print STDERR "\n";
 
 	$jsonobjdevices->write();
 
