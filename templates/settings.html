@@ -181,7 +181,6 @@
 			<div	class="lb_flex-item">
 					<label	class="control-label" for="uncached"><TMPL_VAR OWFS.LABEL_UNCACHED_2></label>
 					<input type="checkbox" name="uncached" id="uncached">
-
 			</div>
 			<div	class="lb_flex-item-spacer"></div>
 			<div	class="lb_flex-item-help hint">
@@ -696,7 +695,7 @@ function saveOWFS() {
 			tempscale: $('#tempscale').val(),
 			refreshdev: $('#refreshdev').val(),
 			refreshval: $('#refreshval').val(),
-			uncached: $('#uncached').val(),
+			uncached: $('#uncached').is(":checked"),
 		}
 	})
 	.fail(function( data ) {
