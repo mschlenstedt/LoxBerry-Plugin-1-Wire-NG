@@ -1,13 +1,13 @@
 {
    "fake" : "",
-   "gpio" : "true",
+   "gpio" : "false",
    "httpdport" : "2121",
-   "i2c" : "true",
+   "i2c" : "false",
    "refreshdev" : "300",
    "refreshval" : "60",
-   "serial2usb" : "true",
+   "serial2usb" : "false",
    "serverport" : "4304",
    "tempscale" : "C",
-   "uncached" : "on",
+   "uncached" : "false",
    "usb" : "true"
 }
