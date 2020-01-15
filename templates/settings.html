@@ -296,7 +296,7 @@
 						<label for="editdevicerefresh"><TMPL_VAR DEVICES.LABEL_REFRESH></label>
 						<input type="text" name="editdevicerefresh" id="editdevicerefresh" value="" 
 						placeholder="<TMPL_VAR DEVICES.LABEL_REFRESH>" data-theme="a" data-mini="true"
-						data-validation-error-msg="<TMPL_VAR DEVICES.VALERR_INVALID_REFRESH>" data-validation-rule="special:numeric">
+						data-validation-error-msg="<TMPL_VAR DEVICES.VALERR_INVALID_REFRESH>" data-validation-rule="special:number-min-value:0.1">
 						<label for="editdevicevalues"><TMPL_VAR DEVICES.LABEL_VALUES></label>
 						<input type="text" name="editdevicevalues" id="editdevicevalues" value="" 
 						placeholder="<TMPL_VAR DEVICES.LABEL_VALUES>" data-theme="a" data-mini="true"
