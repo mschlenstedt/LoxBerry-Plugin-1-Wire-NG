@@ -28,10 +28,12 @@ echo 'APT::Default-Release "stable";' > /etc/apt/apt.conf.d/99myDefaultRelease
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys  04EE7237B7D453EC 648ACFD622F3D138
 APT_LISTCHANGES_FRONTEND=none
 DEBIAN_FRONTEND=noninteractive
-apt-get update
+dpkg --configure -a
+apt-get -y -q --allow-unauthenticated --fix-broken --reinstall --allow-downgrades --allow-remove-essential --allow-change-held-packages --purge autoremove
+apt-get -q -y --allow-unauthenticated --allow-downgrades --allow-remove-essential --allow-change-held-packages update
 
 echo "<INFO> Installing owserver from Testing branch (stable branch is broken in Debian Buster)..."
-apt-get --no-install-recommends -q -y --allow-unauthenticated --fix-broken --reinstall --allow-downgrades --allow-remove-essential --allow-change-held-packages -t testing install owfs owserver owhttpd owftpd owfs-fuse owfs-common owserver libow-3.2-3 libftdi1-2
+apt-get -o Dpkg::Options::=--force-confdef --no-install-recommends -q -y --allow-unauthenticated --fix-broken --reinstall --allow-downgrades --allow-remove-essential --allow-change-held-packages -t testing install owfs owserver owhttpd owftpd owfs-fuse owfs-common owserver libow-3.2-3 libftdi1-2
 
 echo "<INFO> Stopping and reconfigure OWFS services..."
 systemctl stop owserver
