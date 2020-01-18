@@ -16,6 +16,7 @@ my $version = "0.1.0.2";
 
 # Globals
 my $now;
+my $last;
 my $lastdevices = "0";
 my $lastvalues = "0";
 my %lastvalues;
@@ -37,6 +38,21 @@ my $mqtt;
 my $error;
 my $verbose;
 my $mqtt;
+
+# If we were killed...
+$SIG{INT} = sub {
+        LOGTITLE "MQTT Gateway interrupted by Ctrl-C";
+	&mqttpublish ("plugin", "Disconnected");
+	LOGEND "End.";
+        exit 1;
+};
+
+$SIG{TERM} = sub {
+        LOGTITLE "MQTT Gateway requested to stop";
+	&mqttpublish ("plugin", "Disconnected");
+	LOGEND "End.";
+        exit 1;
+};
 
 # Command line options
 my $cgi = CGI->new;
@@ -96,7 +112,7 @@ if ( $owfscfg->{"refreshval"} ) {
 LOGDEB "Default Value Refresh: $refresh_values";
 
 # Uncached
-if ( $owfscfg->{"uncached"} ) {
+if ( is_enabled($owfscfg->{"uncached"}) ) {
 	LOGDEB "Default uncached reading.";
 	$uncached="/uncached";
 } else {
@@ -156,11 +172,19 @@ if ($error) {
 while (1) {
 
 	$now = time();
+	my $republish = 0;
+	
+	# Keepalive message every 60 sec
+	if ( $now > $last + 60 ) {
+		$last = $now;
+		&mqttpublish ("keepaliveepoch", sprintf("%.0f", $now));
+	}
 
 	# Scan for devices
 	if ( $now > $lastdevices + $refresh_devices ) {
 		$lastdevices = time();
 		&readdevices();
+		$republish = 1;
 	}
 
 	# Scan for values - default configs
@@ -188,11 +212,10 @@ while (1) {
 			foreach (@values) {
 				my $value = owreadvalue("$uncached" . "\/$device", "$_");
 				$value =~ s/^\s+//;
-				if ( $cache{"$device"}{"$_"} eq $value ) {
+				if ( $cache{"$device"}{"$_"} eq $value && !$republish ) {
 					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/" . $_ . ": " . $value . " -> Value not changed -> skipping";
-					next;
 				} else {
-					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/" . $_ . ": " . $value . " -> Value changed -> publishing";
+					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device .  "/" . $_ . ": " . $value . " -> Value changed -> publishing";
 					$data{"$_"} = $value;
 					$cache{"$device"}{"$_"} = $value;
 					$publish = 1;
@@ -201,27 +224,27 @@ while (1) {
 			if ( $present{$device} ) {
 				my $value = owreadpresent("$uncached" . "\/$device");
 				$value =~ s/^\s+//;
-				if ( $cache{"$device"}{"present"} eq $value ) {
-					LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value . " -> Value not changed -> skipping";
-					next;
+				if ( $cache{"$device"}{"present"} eq $value && !$republish ) {
+					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/present: " . $value . " -> Value not changed -> skipping";
 				} else {
-					LOGDEB "Default: Read Value: " . $bus . $uncached . $device . " " . $_ . ": " . $value . " -> Value changed -> publishing";
+					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
 					$data{"present"} = $value;
 					$cache{"$device"}{"present"} = $value;
 					$publish = 1;
 				}
 			}
 			# Publish
-			if ( $publish ) {
+			if ( $publish || $republish ) {
 				my $json = encode_json \%data;
 				&mqttpublish($device,$json);
+				$publish = 0;
 			}
 		}
 	}
 	
 	# Scan for values - custom configs
 	foreach (@customdevices) {
-		my $publish = 0;;
+		my $publish = 0;
 		my $device = $_;
 		my @values = "";
 		my $customuncached = "";
@@ -254,11 +277,10 @@ while (1) {
 			foreach (@values) {
 				my $value = owreadvalue("$customuncached" . "/$device", "$_");
 				$value =~ s/^\s+//;
-				if ( $cache{"$device"}{"$_"} eq $value ) {
-					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value . " -> Value not changed -> skipping";
-					next;
+				if ( $cache{"$device"}{"$_"} eq $value && !$republish ) {
+					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . "/". $device . "/" . $_ . ": " . $value . " -> Value not changed -> skipping";
 				} else {
-					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value . " -> Value changed -> publishing";
+					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . "/" . $device . "/" . $_ . ": " . $value . " -> Value changed -> publishing";
 					$data{"$_"} = $value;
 					$cache{"$device"}{"$_"} = $value;
 					$publish = 1;
@@ -267,20 +289,20 @@ while (1) {
 			if ( $devcfg->{"$device"}->{"checkpresent"} ) {
 				my $value = owreadpresent("$customuncached" . "/$device");
 				$value =~ s/^\s+//;
-				if ( $cache{"$device"}{"present"} eq $value ) {
-					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value . " -> Value not changed -> skipping";
-					next;
+				if ( $cache{"$device"}{"present"} eq $value && !$republish ) {
+					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . "/" . $device . "/present: " . $value . " -> Value not changed -> skipping";
 				} else {
-					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . $device . " " . $_ . ": " . $value . " -> Value changed -> publishing";
+					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
 					$data{"present"} = $value;
 					$cache{"$device"}{"present"} = $value;
 					$publish = 1;
 				}
 			}
 			# Publish
-			if ( $publish ) {
+			if ( $publish || $republish ) {
 				my $json = encode_json \%data;
 				&mqttpublish($device,$json);
+				$publish = 0;
 			} 
 		}
 	}
@@ -332,10 +354,10 @@ sub readdevices
 			$family{$device} = $family;
 			# Seperate devices with custom config
 			if ( $devcfg->{"$device"}->{"configured"} ) {
-				LOGDEB "Custom:  Config for $device";
+				LOGDEB "Custom:  Config for $device found";
 				push (@customdevices, $device),
 			} else {
-				LOGDEB "Default: Config for $device";
+				LOGDEB "Default: Config for $device found";
 				push (@devices, $device),
 			}
 		}
@@ -490,8 +512,7 @@ sub mqttconnect
 	eval {
 		LOGINF "Connecting to MQTT Broker";
 		$mqtt = Net::MQTT::Simple->new($mqttbroker . ":" . $mqttport);
-		$mqtt->last_will($mqtttopic . "/status/plugin", "Disconnected", 1);
-		$mqtt->last_will($mqtttopic . "/status/plugin_value", "0", 1);
+		$mqtt->last_will($mqtttopic . "plugin", "Disconnected", 1);
 		if( $mqtt_username and $mqtt_password ) {
 			LOGDEB "MQTT Login with Username and Password: Sending $mqtt_username $mqtt_password";
 			$mqtt->login($mqtt_username, $mqtt_password);
@@ -504,8 +525,7 @@ sub mqttconnect
 	};
 
 	# Update Plugin Status
-	&mqttpublish ("/plugin", "Connected");
-	&mqttpublish ("/plugin_value", "1");
+	&mqttpublish ("plugin", "Connected");
 
 	return($error);
 
@@ -541,9 +561,7 @@ sub mqttpublish
 ##
 ## Always execute when Script ends
 ##
-END {
-
-	&mqttpublish ("/plugin", "Disconnected");
-	&mqttpublish ("/plugin_value", "0");
-	LOGEND "End.";
-}
+#END {
+#	&mqttpublish ("/pluginstatus", "Disconnected");
+#	LOGEND "End.";
+#}
