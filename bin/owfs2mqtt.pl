@@ -13,7 +13,7 @@ use strict;
 use Data::Dumper;
 
 # Version of this script
-my $version = "0.1.0.2";
+my $version = "2.0.0";
 
 # Globals
 my $now;

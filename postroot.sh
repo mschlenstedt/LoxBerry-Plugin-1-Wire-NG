@@ -26,8 +26,8 @@ echo "<INFO> Adding Testing branch to apt sources..."
 echo 'deb http://ftp.de.debian.org/debian/ testing main non-free contrib' > /etc/apt/sources.list.d/testing.list
 echo 'APT::Default-Release "stable";' > /etc/apt/apt.conf.d/99myDefaultRelease
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys  04EE7237B7D453EC 648ACFD622F3D138
-APT_LISTCHANGES_FRONTEND=none
-DEBIAN_FRONTEND=noninteractive
+export APT_LISTCHANGES_FRONTEND=none
+export DEBIAN_FRONTEND=noninteractive
 dpkg --configure -a
 APT_LISTCHANGES_FRONTEND=none DEBIAN_FRONTEND=noninteractive apt-get -y -q --allow-unauthenticated --fix-broken --reinstall --allow-downgrades --allow-remove-essential --allow-change-held-packages --purge autoremove
 APT_LISTCHANGES_FRONTEND=none DEBIAN_FRONTEND=noninteractive apt-get -q -y --allow-unauthenticated --allow-downgrades --allow-remove-essential --allow-change-held-packages update
