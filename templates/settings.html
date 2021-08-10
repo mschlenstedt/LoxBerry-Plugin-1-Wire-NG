@@ -51,6 +51,9 @@
 		<div style="display:flex;align-items:center;justify-content:center;width:100%">
 			<center>
 			<span id="owserverstate"></span>&nbsp;|&nbsp;<span id="owhttpdstate"></span>&nbsp;|&nbsp;<span id="owfs2mqttstate"></span>
+			&nbsp; &nbsp; &nbsp; &nbsp;
+			<a href="javascript:restartOWFS();" id="btnrestartowfs" data-role="button" data-inline="true" data-icon="refresh" data-mini="true"
+						data-transition="flow"><TMPL_VAR OWFS.BUTTON_RESTART></a>
 			</center>
         	</div>
 	</center>
@@ -497,7 +500,7 @@ $(function() {
 
 	if (formowfs) {
 		// PIDs
-		setInterval(function(){ update_pids(); }, 5000);
+		setInterval(function(){ update_pids(); }, 3000);
 		update_pids();
 	}
 	
@@ -711,6 +714,31 @@ function saveOWFS() {
 		console.log( "saveowfs Finished" );
 	});
 }
+
+// Restart OWFS Services
+function restartOWFS() {
+	console.log ("Restart OWFS");
+	$("#owserverstate").attr("style", "color:blue").html("<TMPL_VAR OWFS.MSG_OWSERVER_REFRESH>");
+	$("#owhttpdstate").attr("style", "color:blue").html("<TMPL_VAR OWFS.MSG_OWHTTPD_REFRESH>");
+	$("#owfs2mqttstate").attr("style", "color:blue").html("<TMPL_VAR OWFS.MSG_OWFS2MQTT_REFRESH>");
+	$.ajax( { 
+			type: 'POST',
+			data: { 
+				ajax: 'restartservices'
+			}
+		} )
+	.fail(function( data ) {
+		console.log( "Restart OWFS Fail", data );
+	})
+	.done(function( data ) {
+		console.log( "Restart OWFS Success: ", data );
+		update_pids();
+	})
+	.always(function( data ) {
+		console.log( "Restart OWFS Finished" );
+	});
+}
+
 
 // Get Config
 function getconfig() {

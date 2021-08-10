@@ -3,18 +3,19 @@
 use LoxBerry::System;
 use LoxBerry::Log;
 use LoxBerry::JSON;
+use Getopt::Long;
 use OWNet;
-use CGI;
+#use CGI;
 #use warnings;
 use strict;
-use Data::Dumper;
+#use Data::Dumper;
 
 # Version of this script
-my $version = "0.1.0.1";
+my $version = "2.0.0";
 
 # Command line options
-my $cgi = CGI->new;
-$cgi->import_names('R');
+#my $cgi = CGI->new;
+#$cgi->import_names('R');
 
 # Globals
 my @busses;
@@ -23,6 +24,8 @@ my $error;
 my $owserver;
 my $error;
 my $verboseval="0";
+my $verbose;
+my $action;
 
 # Logging
 # Create a logging object
@@ -32,8 +35,15 @@ logdir => "$lbplogdir",
 addtime => 1,
 );
 
+# Commandline options
+# CGI doesn't work from other CGI skripts... :-(
+#my $cgi = CGI->new;
+#my $q = $cgi->Vars;
+GetOptions ('verbose=s' => \$verbose,
+            'action=s' => \$action);
+
 # Verbose
-if ($R::verbose || $R::v) {
+if ($verbose) {
 	$verboseval="1";
         $log->stdout(1);
         $log->loglevel(7);
@@ -42,12 +52,18 @@ if ($R::verbose || $R::v) {
 LOGSTART "Starting Watchdog";
 
 # Root
-if ($<) {
-	$log->stdout(1);
-        LOGERR "This script has to be run as root.";
-        exit (1);
-}
+#if ($<) {
+#	$log->stdout(1);
+#        LOGERR "This script has to be run as root.";
+#        exit (1);
+#}
 
+# Lock
+my $status = LoxBerry::System::lock(lockfile => '1-wire-ng-watchdog', wait => 120);
+if ($status) {
+    print "$status currently running - Quitting.";
+    exit (1);
+}
 
 # Read OWFS Configuration
 my $owfscfgfile = $lbpconfigdir . "/owfs.json";
@@ -68,25 +84,25 @@ if ( $owfscfg->{"serverport"} ) {
 LOGDEB "Server Port: $serverport";
 
 # Todo
-if ( $R::action eq "start" ) {
+if ( $action eq "start" ) {
 
 	&start();
 
 }
 
-elsif ( $R::action eq "stop" ) {
+elsif ( $action eq "stop" ) {
 
 	&stop();
 
 }
 
-elsif ( $R::action eq "restart" ) {
+elsif ( $action eq "restart" ) {
 
 	&restart();
 
 }
 
-elsif ( $R::action eq "check" ) {
+elsif ( $action eq "check" ) {
 
 	&check();
 
@@ -115,9 +131,9 @@ sub start
 
 	LOGINF "START called...";
 	LOGINF "Starting OWServer...";
-	system ("systemctl start owserver");
+	system ("sudo systemctl start owserver");
 	sleep (1);
-	system ("systemctl start owhttpd");
+	system ("sudo systemctl start owhttpd");
 	sleep (1);
 	&readbusses();
 
@@ -127,8 +143,13 @@ sub start
 		my $bus = $_;
 		$bus =~ s/^\/bus\.//;
 		LOGINF "Starting owfs2mqtt for $_...";
-		LOGDEB "Call: $lbpbindir/owfs2mqtt.pl bus=$bus verbose=$verboseval";
-		system ("su loxberry -c \"$lbpbindir/owfs2mqtt.pl bus=$bus verbose=$verboseval &\"");
+		LOGDEB "Call: $lbpbindir/owfs2mqtt.pl --bus=$bus --verbose=$verboseval";
+		eval {
+			system("$lbpbindir/owfs2mqtt.pl --bus=$bus --verbose=$verboseval &");
+		} or do {
+			my $error = $@ || 'Unknown failure';
+			LOGERR "Could not start $lbpbindir/owfs2mqtt.pl --bus=$bus --verbose=$verboseval - $error";
+		};
 	
 	}
 
@@ -141,10 +162,10 @@ sub stop
 
 	LOGINF "STOP called...";
 	LOGINF "Stopping OWServer...";
-	system ("pkill -f owserver"); # kill needed because stop does take too long (until timeout)
-	system ("systemctl stop owserver");
+	system ("sudo pkill -f owserver"); # kill needed because stop does take too long (until timeout)
+	system ("sudo systemctl stop owserver");
 	sleep (1);
-	system ("systemctl stop owhttpd");
+	system ("sudo systemctl stop owhttpd");
 	sleep (1);
 
 	LOGINF "Stopping owfs2mqtt instances...";
@@ -173,9 +194,14 @@ sub check
 	my $output;
 	my $errors;
 	my $exitcode;
+	
+	# Creating tmp file with failed checks
+	if (!-e "/dev/shm/1-wire-ng-watchdog-fails.dat") {
+		my $response = LoxBerry::System::write_file("/dev/shm/1-wire-ng-watchdog-fails.dat", "0");
+	}
 
 	# owserver
-	$output = qx(systemctl -q status owserver);
+	$output = qx(sudo systemctl -q status owserver);
 	$exitcode  = $? >> 8;
 	if ($exitcode != 0) {
 		LOGERR "owServer seems to be dead - Error $exitcode";
@@ -183,7 +209,7 @@ sub check
 	}
 
 	# owhttpd
-	$output = qx(systemctl -q status owhttpd);
+	$output = qx(sudo systemctl -q status owhttpd);
 	$exitcode  = $? >> 8;
 	if ($exitcode != 0) {
 		LOGERR "owhttpd seems to be dead - Error $exitcode";
@@ -200,9 +226,16 @@ sub check
 
 
 	if ($errors) {
-		&restart();
+		my $fails = LoxBerry::System::read_file("/dev/shm/1-wire-ng-watchdog-fails.dat");
+		chomp ($fails);
+		if ($fails > 9) {
+			LOGERR "Too many failures. Will stop watchdogging... Check your configuration and start services manually.";
+		} else {
+			&restart();
+		}
 	} else {
 		LOGINF "All processes seems to be alive. Nothing to do.";	
+		my $response = LoxBerry::System::write_file("/dev/shm/1-wire-ng-watchdog-fails.dat", "0");
 	}
 
 	return(0);
@@ -272,5 +305,6 @@ sub owconnect
 END {
 
 	LOGEND "This is the end - My only friend, the end...";
+	LoxBerry::System::unlock(lockfile => '1-wire-ng-watchdog');
 
 }

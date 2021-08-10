@@ -73,9 +73,16 @@ if( $q->{ajax} ) {
 		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
+	# Restart services
+	if( $q->{ajax} eq "restartservices" ) {
+		$response{error} = &restartservices();
+		print JSON->new->canonical(1)->encode(\%response);
+	}
+	
 	# Save OWFS Settings
 	if( $q->{ajax} eq "saveowfs" ) {
 		$response{error} = &saveowfs();
+		my $errors = &searchdevices(); # Always create devices.json, but ignore errors
 		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
@@ -160,6 +167,11 @@ if( $q->{ajax} ) {
 	    die_on_bad_params => 0,
 	);
 	%L = LoxBerry::System::readlanguage($template, "language.ini");
+	
+	# First time preparation - to create all nessassery config files
+	if (!-e "$CFGFILEDEVICES") {
+		my $errors =  &searchdevices();
+	}
 	
 	# Default is owfs form
 	$q->{form} = "owfs" if !$q->{form};
@@ -368,6 +380,7 @@ sub savedevice
 	$cfgdevices->{$address}->{address} = $q->{address};
 	my $configured =  is_enabled ($q->{configured}) ? 1 : 0;
 	$cfgdevices->{$address}->{configured} = $configured;
+	$q->{refresh} =~ s/,/\./g;
 	$cfgdevices->{$address}->{refresh} = $q->{refresh};
 	my $uncached =  is_enabled ($q->{uncached}) ? 1 : 0;
 	$cfgdevices->{$address}->{uncached} = $uncached;
@@ -418,7 +431,8 @@ sub searchdevices
 	
 	my @devices = split(/,/,$devices);
 	for ( @devices ) {
-		if ( $_ =~ /^\/(\d){2}.*$/ ) {
+		if ( $_ =~ /^\/[0-9a-fA-F]{2}.*$/ ) {
+		#if ( $_ =~ /^\/(\d){2}.*$/ ) { # Old
 			my $name = $_;
 			$name =~ s/^\///g;
 			# Check if config already exists
@@ -439,7 +453,7 @@ sub searchdevices
 				$cfgdevices->{$name}->{type} = "$type";
 				$cfgdevices->{$name}->{configured} = "0";
 				$cfgdevices->{$name}->{refresh} = "60";
-				$cfgdevices->{$name}->{uncached} = "0";
+				$cfgdevices->{$name}->{uncached} = "1";
 				$cfgdevices->{$name}->{checkpresent} = "0";
 				$cfgdevices->{$name}->{values} = "";
 			}
@@ -495,7 +509,9 @@ sub saveowfs
 	$cfg->{gpio} = $q->{gpio};
 	$cfg->{tempscale} = $q->{tempscale};
 	$cfg->{uncached} = $q->{uncached};
+	$q->{refreshdev} =~ s/,/\./g;
 	$cfg->{refreshdev} = $q->{refreshdev};
+	$q->{refreshval} =~ s/,/\./g;
 	$cfg->{refreshval} = $q->{refreshval};
 	$jsonobj->write();
 
@@ -517,6 +533,11 @@ sub saveowfs
 			}
 			close $fh1;
 		}
+		if ( is_enabled($q->{gpio}) ) {
+			eval {
+				system("sudo $lbpbindir/create1wgpio.sh >/dev/null 2>&1");
+			};
+		}
 		close $fh;
 	};
 	if ($@) {
@@ -530,16 +551,21 @@ sub saveowfs
 	}
 
 	# Restart OWFS
-	system("sudo systemctl enable owserver >/dev/null 2>&1");
-	system("sudo systemctl enable owhttpd >/dev/null 2>&1");
-	system("sudo $lbpbindir/watchdog.pl action=restart verbose=$verbose >/dev/null 2>&1");
+	eval {
+		system("sudo systemctl enable owserver >/dev/null 2>&1");
+		system("sudo systemctl enable owhttpd >/dev/null 2>&1");
+		system("$lbpbindir/watchdog.pl --action=restart --verbose=$verbose >/dev/null 2>&1");
+	};
+	if ($@) {
+		$errors++;
+	}
 	
 	# Create Cronjob
 	my $cron_file = $lbhomedir . "/system/cron/cron.01min/" . $lbpplugindir;
 	eval {
 		open(my $fh, '>', $cron_file);
 		print $fh "#!/bin/bash\n";
-		print $fh "sudo $lbpbindir/watchdog.pl action=check verbose=0\n";
+		print $fh "$lbpbindir/watchdog.pl --action=check --verbose=0\n";
 		close $fh;
 		system("chmod 755 $cron_file >/dev/null 2>&1");
 	};
@@ -550,6 +576,28 @@ sub saveowfs
 	return ($errors);
 
 }
+
+sub restartservices
+{
+	my $loglevel = LoxBerry::System::pluginloglevel();
+	my $verbose = "0";
+	if ($loglevel eq "7") {
+		$verbose = 1;
+	}
+
+	# Restart services from WebUI
+	my $errors;
+	eval {
+		system("$lbpbindir/watchdog.pl --action=restart --verbose=$verbose >/dev/null 2>&1");
+	};
+	if ($@) {
+		$errors++;
+	}
+
+	return ($errors);
+
+}
+
 
 # Get VIs/VOs and data for nukiId
 sub getdevicedownloads

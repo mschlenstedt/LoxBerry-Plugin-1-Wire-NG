@@ -3,10 +3,11 @@
 use LoxBerry::System;
 use LoxBerry::Log;
 use LoxBerry::JSON;
+use Getopt::Long;
 use Net::MQTT::Simple;
 use OWNet;
 use Time::HiRes qw ( sleep time );
-use CGI;
+#use CGI;
 #use warnings;
 use strict;
 use Data::Dumper;
@@ -55,8 +56,17 @@ $SIG{TERM} = sub {
 };
 
 # Command line options
-my $cgi = CGI->new;
-$cgi->import_names('R');
+#my $cgi = CGI->new;
+#$cgi->import_names('R');
+
+# Commandline options
+# CGI doesn't work from other CGI skripts... :-(
+#my $cgi = CGI->new;
+#my $q = $cgi->Vars;
+my $verbose;
+my $bus;
+GetOptions ('verbose=s' => \$verbose,
+            'bus=s' => \$bus);
 
 # Logging
 # Create a logging object
@@ -67,7 +77,7 @@ addtime => 1,
 );
 
 # Verbose
-if ($R::verbose || $R::v) {
+if ($verbose) {
         $log->stdout(1);
         $log->loglevel(7);
 }
@@ -75,14 +85,14 @@ if ($R::verbose || $R::v) {
 LOGSTART "Starting owfs2mqtt";
 
 # Bus to read
-if ($R::bus eq "") {
+if ($bus eq "") {
 	$log->stdout(1);
 	LOGERR "You have to specify the bus you would like to read. Exiting.";
 	exit 1;
 } else {
-	LOGINF "Reading from Bus.$R::bus";
-	$bus = "/bus." . $R::bus;
-	LOGTITLE "Daemon owfs2mqtt for Bus.$R::bus";
+	LOGINF "Reading from Bus.$bus";
+	$bus = "/bus." . $bus;
+	LOGTITLE "Daemon owfs2mqtt for Bus.$bus";
 }
 
 # Read OWFS Configuration
@@ -149,6 +159,8 @@ my $mqtttopic = $mqttcfg->{"topic"};
 if (!$mqtttopic) {
 	$mqtttopic = "owfs";
 }
+# Check config
+
 # Connect
 &mqttconnect();
 
@@ -345,7 +357,8 @@ sub readdevices
 	# Set default values
 	my @temp = split(/,/,$devices);
 	for (@temp) {
-		if ( $_ =~ /^\/bus\.\d*\/(\d){2}.*$/ ) {
+		if ( $_ =~ /^\/bus\.\d*\/[0-9a-fA-F]{2}.*$/ ) {
+		# if ( $_ =~ /^\/bus\.\d*\/(\d){2}.*$/ ) { # Old
 			my $device = $_;
 			$device =~ s/^\/bus\.\d*//s;
 			$device =~ s/^\/*//s;
@@ -506,6 +519,10 @@ sub mqttconnect
 		$mqttbroker = $mqttcfg->{"server"};
 		$mqttport = $mqttcfg->{"port"};
 	}
+	if (!$mqttbroker || !$mqttport) {
+        	LOGERR "MQTT isn't configured completely. I need at least broker and port.";
+		exit (1);
+	};
 	LOGDEB "MQTT Settings: User: $mqtt_username; Pass: $mqtt_password; Broker: $mqttbroker; Port: $mqttport";
 	
 	# Connect

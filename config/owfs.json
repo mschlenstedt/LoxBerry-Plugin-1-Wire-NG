@@ -8,6 +8,6 @@
    "serial2usb" : "false",
    "serverport" : "4304",
    "tempscale" : "C",
-   "uncached" : "false",
+   "uncached" : "true",
    "usb" : "true"
 }
