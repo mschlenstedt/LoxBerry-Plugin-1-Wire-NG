@@ -224,10 +224,11 @@ sub check
 		$errors++;
 	}
 
-
 	if ($errors) {
 		my $fails = LoxBerry::System::read_file("/dev/shm/1-wire-ng-watchdog-fails.dat");
 		chomp ($fails);
+		$fails++;
+		my $response = LoxBerry::System::write_file("/dev/shm/1-wire-ng-watchdog-fails.dat", "$fails");
 		if ($fails > 9) {
 			LOGERR "Too many failures. Will stop watchdogging... Check your configuration and start services manually.";
 		} else {
