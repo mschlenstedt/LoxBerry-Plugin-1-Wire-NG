@@ -561,17 +561,17 @@ sub saveowfs
 	}
 	
 	# Create Cronjob
-	my $cron_file = $lbhomedir . "/system/cron/cron.01min/" . $lbpplugindir;
-	eval {
-		open(my $fh, '>', $cron_file);
-		print $fh "#!/bin/bash\n";
-		print $fh "$lbpbindir/watchdog.pl --action=check --verbose=0\n";
-		close $fh;
-		system("chmod 755 $cron_file >/dev/null 2>&1");
-	};
-	if ($@) {
-		$errors++;
-	}
+	#my $cron_file = $lbhomedir . "/system/cron/cron.01min/" . $lbpplugindir;
+	#eval {
+	#	open(my $fh, '>', $cron_file);
+	#	print $fh "#!/bin/bash\n";
+	#	print $fh "$lbpbindir/watchdog.pl --action=check --verbose=0\n";
+	#	close $fh;
+	#	system("chmod 755 $cron_file >/dev/null 2>&1");
+	#};
+	#if ($@) {
+	#	$errors++;
+	#}
 
 	return ($errors);
 
