@@ -241,7 +241,7 @@ while (1) {
 				} else {
 					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
 					$data{"present"} = $value;
-					if ($value ne "1") {
+					if ($value eq "0") {
 						$data{"bus"} = "-1";
 					}
 					$cache{"$device"}{"present"} = $value;
@@ -309,7 +309,7 @@ while (1) {
 				} else {
 					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
 					$data{"present"} = $value;
-					if ($value ne "1") {
+					if ($value eq "0") {
 						$data{"bus"} = "-1";
 					}
 					$cache{"$device"}{"present"} = $value;
