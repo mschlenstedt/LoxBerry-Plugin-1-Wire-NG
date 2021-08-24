@@ -241,16 +241,15 @@ while (1) {
 				} else {
 					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
 					$data{"present"} = $value;
+					if ($value ne "1") {
+						$data{"bus"} = "-1";
+					}
 					$cache{"$device"}{"present"} = $value;
 					$publish = 1;
 				}
 			}
 			# Publish
 			if ( $publish || $republish ) {
-				# Set bus to -1 if device is not present and checkpresent=1
-				if (!$data{"present"} && $present{$device}) {
-					$data{"bus"} = "-1";
-				}
 				my $json = encode_json \%data;
 				&mqttpublish($device,$json);
 				$publish = 0;
@@ -310,6 +309,9 @@ while (1) {
 				} else {
 					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
 					$data{"present"} = $value;
+					if ($value ne "1") {
+						$data{"bus"} = "-1";
+					}
 					$cache{"$device"}{"present"} = $value;
 					$publish = 1;
 				}
