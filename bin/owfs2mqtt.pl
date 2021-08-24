@@ -247,6 +247,10 @@ while (1) {
 			}
 			# Publish
 			if ( $publish || $republish ) {
+				# Set bus to -1 if device is not present and checkpresent=1
+				if (!$data{"present"} && $present{$device}) {
+					$data{"bus"} = "-1";
+				}
 				my $json = encode_json \%data;
 				&mqttpublish($device,$json);
 				$publish = 0;
