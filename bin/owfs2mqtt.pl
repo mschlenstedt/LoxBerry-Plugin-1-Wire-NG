@@ -207,7 +207,7 @@ while (1) {
 			my $device = $_;
 			# Create data structure
 			my $busclear = $bus;
-			$busclear=~ s/^\///;
+			$busclear =~ s/^\/bus\.//s;
 			my $uncachedclear;
 			if ($uncached) {
 				$uncachedclear = "1";
@@ -270,7 +270,7 @@ while (1) {
 			my $deviceclear = $device;
 			$deviceclear =~ s/\W//g;
 			my $busclear = $bus;
-			$busclear=~ s/^\///;
+			$busclear =~ s/^\/bus\.//s;
 			my $uncachedclear;
 			my %data = ( "address" => "$deviceclear",
 					"timestamp" => "$lastvalues",
@@ -360,12 +360,15 @@ sub readdevices
 		$devices = $devices . ",/" . $_;
 	}
 
+	LOGDEB "Found entries from the bus and from device config: $devices";
+
 	# Set default values
 	my @temp = split(/,/,$devices);
 	for (@temp) {
-		if ( $_ =~ /^\/bus\.\d*\/[0-9a-fA-F]{2}.*$/ ) {
-		# if ( $_ =~ /^\/bus\.\d*\/(\d){2}.*$/ ) { # Old
-			my $device = $_;
+		LOGDEB "Checking $_...";
+		my $device = $_;
+		if ( $device =~ /^(\/bus\.\d*)*\/[0-9a-fA-F]{2}\..*$/ ) {
+			LOGDEB "This is a device: $device";
 			$device =~ s/^\/bus\.\d*//s;
 			$device =~ s/^\/*//s;
 			my ($family,$address) = split /\./, $device;
@@ -379,6 +382,8 @@ sub readdevices
 				LOGDEB "Default: Config for $device found";
 				push (@devices, $device),
 			}
+		} else {
+			LOGDEB "This is NOT a device: $device -> ignore";
 		}
 	}
 
@@ -574,7 +579,7 @@ sub mqttpublish
 	# Publish
 	eval {
 		$mqtt->retain($mqtttopic . "/status/" . $devname, "$devdata");
-		LOGDEB "Publishing " . $mqtttopic . "/status/" . $devname . " " . $devdata;
+		LOGINF "Publishing " . $mqtttopic . "/status/" . $devname . " " . $devdata;
 	};
 
 	return ($error);
