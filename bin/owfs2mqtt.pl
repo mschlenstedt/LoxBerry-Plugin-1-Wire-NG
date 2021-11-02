@@ -446,13 +446,14 @@ sub owreadvalue
 {
 
 	my ($owdevice, $owvalue) = @_;
-	my $value;
+	my $value = undef;
 	eval {
 		$value = $owserver->read( "$bus" . "$owdevice/$owvalue" );
+		LOGDEB "Reading " . "$bus" . "$owdevice/$owvalue" . ": Read value is $value";
 	};
-	if ($@ || !$value) {
+	if ($@ || !defined($value) ) {
 		my $error = $@ || 'Unknown failure';
-        	LOGWARN "An error occurred - $error. Value set to '-9999'";
+        	LOGWARN "An error occurred - $error. Read value was $value. Value will be set to '-9999'";
 		$value = "-9999";
 	};
 	return ($value);
