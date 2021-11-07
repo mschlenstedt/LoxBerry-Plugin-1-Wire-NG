@@ -952,7 +952,7 @@ function refreshOWFSForm() {
 
 // Open OWFS WebUI
 function openOWFS() {
-	window.open( location.protocol + '//' + location.host + ':' + $("#httpdport").val(), "_blank" );
+	window.open( location.protocol + '//' + location.hostname + ':' + $("#httpdport").val(), "_blank" );
 }
 
 // Delete Device (Question)
