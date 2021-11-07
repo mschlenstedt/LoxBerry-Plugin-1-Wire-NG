@@ -13,7 +13,7 @@ use strict;
 use Data::Dumper;
 
 # Version of this script
-my $version = "2.0.2";
+my $version = "2.0.4";
 
 # Globals
 my $now;
@@ -22,13 +22,16 @@ my $lastdevices = "0";
 my $lastvalues = "0";
 my %lastvalues;
 my %family;
+my %bus;
 my %values;
 my %present;
 my %cache;
 my @devices;
 my @customdevices;
+my @busses;
 my $refresh_devices;
 my $refresh_values;
+my $looptime = 1;
 my $uncached;
 my $bus;
 my $temp;
@@ -65,8 +68,7 @@ $SIG{TERM} = sub {
 #my $q = $cgi->Vars;
 my $verbose;
 my $bus;
-GetOptions ('verbose=s' => \$verbose,
-            'bus=s' => \$bus);
+GetOptions ('verbose=s' => \$verbose);
 
 # Logging
 # Create a logging object
@@ -82,18 +84,8 @@ if ($verbose) {
         $log->loglevel(7);
 }
 
+LOGTITLE "Daemon owfs2mqtt";
 LOGSTART "Starting owfs2mqtt";
-
-# Bus to read
-if ($bus eq "") {
-	$log->stdout(1);
-	LOGERR "You have to specify the bus you would like to read. Exiting.";
-	exit 1;
-} else {
-	LOGINF "Reading from Bus.$bus";
-	$bus = "/bus." . $bus;
-	LOGTITLE "Daemon owfs2mqtt for Bus.$bus";
-}
 
 # Read OWFS Configuration
 my $owfscfgfile = $lbpconfigdir . "/owfs.json";
@@ -120,6 +112,12 @@ if ( $owfscfg->{"refreshval"} ) {
 	$refresh_values=60;
 }
 LOGDEB "Default Value Refresh: $refresh_values";
+
+# Looptime
+if ($owfscfg->{"refreshval"} < $looptime) {
+	$looptime = $owfscfg->{"refreshval"};
+}
+LOGDEB "Default Looptime: $looptime";
 
 # Uncached
 if ( is_enabled($owfscfg->{"uncached"}) ) {
@@ -159,7 +157,6 @@ my $mqtttopic = $mqttcfg->{"topic"};
 if (!$mqtttopic) {
 	$mqtttopic = "owfs";
 }
-# Check config
 
 # Connect
 &mqttconnect();
@@ -206,7 +203,7 @@ while (1) {
 			my $publish = 0;
 			my $device = $_;
 			# Create data structure
-			my $busclear = $bus;
+			my $busclear = $bus{$device};
 			$busclear =~ s/^\/bus\.//s;
 			my $uncachedclear;
 			if ($uncached) {
@@ -225,9 +222,9 @@ while (1) {
 				my $value = owreadvalue("$uncached" . "\/$device", "$_");
 				$value =~ s/^\s+//;
 				if ( $cache{"$device"}{"$_"} eq $value && !$republish ) {
-					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/" . $_ . ": " . $value . " -> Value not changed -> skipping";
+					LOGDEB "Default: Read Value: " . $uncached . "/" . $device . "/" . $_ . ": " . $value . " -> Value not changed -> skipping";
 				} else {
-					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device .  "/" . $_ . ": " . $value . " -> Value changed -> publishing";
+					LOGDEB "Default: Read Value: " . $uncached . "/" . $device .  "/" . $_ . ": " . $value . " -> Value changed -> publishing";
 					$data{"$_"} = $value;
 					$cache{"$device"}{"$_"} = $value;
 					$publish = 1;
@@ -237,9 +234,9 @@ while (1) {
 				my $value = owreadpresent("$uncached" . "\/$device");
 				$value =~ s/^\s+//;
 				if ( $cache{"$device"}{"present"} eq $value && !$republish ) {
-					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/present: " . $value . " -> Value not changed -> skipping";
+					LOGDEB "Default: Read Value: " . $uncached . "/" . $device . "/present: " . $value . " -> Value not changed -> skipping";
 				} else {
-					LOGDEB "Default: Read Value: " . $bus . $uncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
+					LOGDEB "Default: Read Value: " . $uncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
 					$data{"present"} = $value;
 					if ($value eq "0") {
 						$data{"bus"} = "-1";
@@ -263,14 +260,18 @@ while (1) {
 		my $device = $_;
 		my @values = "";
 		my $customuncached = "";
+		my $busclear;
+		my $deviceclear;
 		my $next = $lastvalues{$device} + $devcfg->{"$device"}->{"refresh"};
 		if ( $now > $lastvalues{$device} + $devcfg->{"$device"}->{"refresh"} ) {
 			$lastvalues{$device} = time();
 			# Create data structure
-			my $deviceclear = $device;
+			$deviceclear = $device;
 			$deviceclear =~ s/\W//g;
-			my $busclear = $bus;
-			$busclear =~ s/^\/bus\.//s;
+			if ($bus{$device}) {
+				$busclear = $bus{$device};
+				$busclear =~ s/^\/bus\.//s;
+			}
 			my $uncachedclear;
 			my %data = ( "address" => "$deviceclear",
 					"timestamp" => "$lastvalues",
@@ -293,9 +294,9 @@ while (1) {
 				my $value = owreadvalue("$customuncached" . "/$device", "$_");
 				$value =~ s/^\s+//;
 				if ( $cache{"$device"}{"$_"} eq $value && !$republish ) {
-					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . "/". $device . "/" . $_ . ": " . $value . " -> Value not changed -> skipping";
+					LOGDEB "Custom:  Read Value: " . $customuncached . "/". $device . "/" . $_ . ": " . $value . " -> Value not changed -> skipping";
 				} else {
-					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . "/" . $device . "/" . $_ . ": " . $value . " -> Value changed -> publishing";
+					LOGDEB "Custom:  Read Value: " . $customuncached . "/" . $device . "/" . $_ . ": " . $value . " -> Value changed -> publishing";
 					$data{"$_"} = $value;
 					$cache{"$device"}{"$_"} = $value;
 					$publish = 1;
@@ -305,12 +306,24 @@ while (1) {
 				my $value = owreadpresent("$customuncached" . "/$device");
 				$value =~ s/^\s+//;
 				if ( $cache{"$device"}{"present"} eq $value && !$republish ) {
-					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . "/" . $device . "/present: " . $value . " -> Value not changed -> skipping";
+					LOGDEB "Custom:  Read Value: " . $customuncached . "/" . $device . "/present: " . $value . " -> Value not changed -> skipping";
 				} else {
-					LOGDEB "Custom:  Read Value: " . $bus . $customuncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
+					LOGDEB "Custom:  Read Value: " . $customuncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
 					$data{"present"} = $value;
 					if ($value eq "0") {
 						$data{"bus"} = "-1";
+					} else {
+						# Figure out on which bus we are
+						$data{"bus"} = "-9999";
+						foreach (@busses) {
+							my $test = owreadpresent($_ . "$customuncached" . "/$device");
+							if ($test) {
+								my $busclear = $_;
+								$busclear =~ s/^\/bus\.//s;
+								$data{"bus"} = "$busclear";
+								last;
+							}
+						}
 					}
 					$cache{"$device"}{"present"} = $value;
 					$publish = 1;
@@ -326,7 +339,7 @@ while (1) {
 	}
 
 	# Wait
-	sleep 0.1;
+	sleep $looptime;
 
 }
 
@@ -340,50 +353,100 @@ while (1) {
 ##
 sub readdevices
 {
-
-	LOGINF "Scanning for devices at $bus...";
-	@devices = "";
-	my $devices;
 	
-	# Scan Bus
+	LOGINF "Scanning for connected and configured devices...";
+	LOGINF "Scanning for available busses...";
+	my $busses;
+	
+	# Scan for busses
 	eval {
-		$devices = $owserver->dir("$bus");
+		$busses = $owserver->dir("/");
 	};
-	if ($@ || !$devices) {
+	if ($@ || !$busses) {
 		my $error = $@ || 'Unknown failure';
-        	LOGERR "An error occurred - $error Devices: $devices";
+        	LOGERR "An error occurred - $error Busses: $busses";
 		exit (1);
 	};
+	LOGDEB "OWServer Root Folder: $busses";
 	
-	# Add manually configured devices 
-	foreach (keys %$devcfg) {
-		$devices = $devices . ",/" . $_;
+	# Set default values
+	my @temp = split(/,/,$busses);
+	for (@temp) {
+		if ( $_ =~ /^\/bus.*$/ ) {
+			LOGDEB "Found Bus $_";
+			push (@busses, $_),
+		}
 	}
 
-	LOGDEB "Found entries from the bus and from device config: $devices";
+	my $devices;
+	foreach my $bus (@busses) {
 
-	# Set default values
-	my @temp = split(/,/,$devices);
-	for (@temp) {
-		LOGDEB "Checking $_...";
-		my $device = $_;
-		if ( $device =~ /^(\/bus\.\d*)*\/[0-9a-fA-F]{2}\..*$/ ) {
-			LOGDEB "This is a device: $device";
-			$device =~ s/^\/bus\.\d*//s;
-			$device =~ s/^\/*//s;
-			my ($family,$address) = split /\./, $device;
-			# Fill hash/array
-			$family{$device} = $family;
-			# Seperate devices with custom config
-			if ( $devcfg->{"$device"}->{"configured"} ) {
-				LOGDEB "Custom:  Config for $device found";
-				push (@customdevices, $device),
+		#$bus = "/bus." . $bus;
+		LOGINF "Scanning for devices at $bus...";
+		@devices = "";
+		my $tempdevices;
+		%family = undef;
+		%bus = undef;
+	
+		# Scan Bus
+		eval {
+			$tempdevices = $owserver->dir("$bus");
+		};
+		if ($@ || !$tempdevices) {
+			my $error = $@ || 'Unknown failure';
+        		LOGERR "An error occurred - $error Devices: $tempdevices";
+			exit (1);
+		};
+	
+		LOGDEB "Found entries from the bus: $tempdevices";
+
+		# Set default values
+		my @temp = split(/,/,$tempdevices);
+		for (@temp) {
+			LOGDEB "Checking $_...";
+			my $device = $_;
+			if ( $device =~ /^(\/bus\.\d*)*\/[0-9a-fA-F]{2}\..*$/ ) {
+				LOGDEB "This is a device: $device";
+				$device =~ s/^\/bus\.\d*//s;
+				$device =~ s/^\/*//s;
+				my ($family,$address) = split /\./, $device;
+				# Fill hashes/arrays
+				$family{$device} = $family;
+				$bus{$device} = $bus;
+				# Seperate devices with custom config
+				if ( $devcfg->{"$device"}->{"configured"} ) {
+					LOGDEB "Custom:  Config for $device found";
+					push (@customdevices, $device);
+					# Set lower looptime if needed
+					if ( $devcfg->{"$device"}->{"refresh"} && $devcfg->{"$device"}->{"refresh"} < $looptime ) {
+						$looptime = $devcfg->{"$device"}->{"refresh"};
+						LOGDEB "Change Looptime: $looptime";
+					}
+				} else {
+					LOGDEB "Default: Config for $device found";
+					push (@devices, $device),
+				}
 			} else {
-				LOGDEB "Default: Config for $device found";
-				push (@devices, $device),
+				LOGDEB "This is NOT a device: $device -> ignore";
+			}
+		}
+	
+	}
+
+	# Add manually configured devices we haven't mentioned so far
+	LOGINF "Checking all manually configured devices...";
+	foreach (keys %$devcfg) {
+		LOGDEB "Checking $_...";
+		if ( $devcfg->{"$_"}->{"configured"} && !defined($family{$_}) ) {
+			LOGDEB "Custom:  Config for $_ found";
+			push (@customdevices, $_);
+			# Set lower looptime if needed
+			if ( $devcfg->{"$_"}->{"refresh"} && $devcfg->{"$_"}->{"refresh"} < $looptime ) {
+				$looptime = $devcfg->{"$_"}->{"refresh"};
+				LOGDEB "Change Looptime: $looptime";
 			}
 		} else {
-			LOGDEB "This is NOT a device: $device -> ignore";
+			LOGDEB "$_ not manually configured or already known from bus scanning -> ignore";
 		}
 	}
 
@@ -430,7 +493,7 @@ sub readdevices
 		else {
 			$values = "";
 		}
-		# Fill hash
+		# Fill hashes
 		$values{$_} = $values;
 		$present{$_} = $present;
 	}
@@ -448,8 +511,8 @@ sub owreadvalue
 	my ($owdevice, $owvalue) = @_;
 	my $value = undef;
 	eval {
-		$value = $owserver->read( "$bus" . "$owdevice/$owvalue" );
-		LOGDEB "Reading " . "$bus" . "$owdevice/$owvalue" . ": Read value is $value";
+		$value = $owserver->read( "$owdevice/$owvalue" );
+		LOGDEB "Reading " . "$owdevice/$owvalue" . ": Read value is $value";
 	};
 	if ($@ || !defined($value) ) {
 		my $error = $@ || 'Unknown failure';
@@ -572,7 +635,10 @@ sub mqttpublish
 	}
 
 	# Clear Name
-	my $devname = $devcfg->{"$owdevice"}->{"name"};
+	my $devname;
+	if ( defined($devcfg->{"$owdevice"}) ) {
+		$devname = $devcfg->{"$owdevice"}->{"name"};
+	}
 	if (!$devname) {
 		$devname = $owdevice;
 	};

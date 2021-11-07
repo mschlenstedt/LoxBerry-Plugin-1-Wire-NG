@@ -11,7 +11,7 @@ use strict;
 #use Data::Dumper;
 
 # Version of this script
-my $version = "2.0.0";
+my $version = "2.0.4";
 
 # Command line options
 #my $cgi = CGI->new;
@@ -135,24 +135,16 @@ sub start
 	sleep (1);
 	system ("sudo systemctl start owhttpd");
 	sleep (1);
-	&readbusses();
 
-	LOGINF "Starting owfs2mqtt instances...";
-	for (@busses) {
-
-		my $bus = $_;
-		$bus =~ s/^\/bus\.//;
-		LOGINF "Starting owfs2mqtt for $_...";
-		LOGDEB "Call: $lbpbindir/owfs2mqtt.pl --bus=$bus --verbose=$verboseval";
+	LOGINF "Starting owfs2mqtt...";
+	LOGDEB "Call: $lbpbindir/owfs2mqtt.pl --verbose=$verboseval";
 		eval {
-			system("$lbpbindir/owfs2mqtt.pl --bus=$bus --verbose=$verboseval &");
+			system("$lbpbindir/owfs2mqtt.pl --verbose=$verboseval &");
 		} or do {
 			my $error = $@ || 'Unknown failure';
-			LOGERR "Could not start $lbpbindir/owfs2mqtt.pl --bus=$bus --verbose=$verboseval - $error";
+			LOGERR "Could not start $lbpbindir/owfs2mqtt.pl --verbose=$verboseval - $error";
 		};
 	
-	}
-
 	return(0);
 
 }
@@ -242,63 +234,6 @@ sub check
 	return(0);
 
 }
-
-##
-## Read available busses
-##
-sub readbusses
-{
-
-	# Connect to OWServer
-	$error = owconnect();
-	if ($error) {
-		LOGERR "Error while connecting to OWServer.";
-		exit(1);
-	}
-
-	LOGINF "Scanning for busses...";
-	my $busses;
-	
-	# Scan for busses
-	eval {
-		$busses = $owserver->dir("/");
-	};
-	if ($@ || !$busses) {
-		my $error = $@ || 'Unknown failure';
-        	LOGERR "An error occurred - $error Busses: $busses";
-		exit (1);
-	};
-	LOGDEB "OWServer Root Folder: $busses";
-	
-	# Set default values
-	my @temp = split(/,/,$busses);
-	for (@temp) {
-		if ( $_ =~ /^\/bus.*$/ ) {
-			LOGDEB "Found Bus $_";
-			push (@busses, $_),
-		}
-	}
-
-	return();
-
-};
-
-##
-## Connect to OWServer
-##
-sub owconnect
-{
-	eval {
-		$owserver = OWNet->new('localhost:' . $owfscfg->{"serverport"} . " -v -" .$owfscfg->{"tempscale"} );
-	};
-	if ($@ || !$owserver) {
-		my $error = $@ || 'Unknown failure';
-        	LOGERR "An error occurred - $error";
-		exit (1);
-	};
-	return($error);
-
-};
 
 ##
 ## Always execute when Script ends
