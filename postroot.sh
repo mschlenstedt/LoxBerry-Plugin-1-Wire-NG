@@ -22,24 +22,28 @@ PBIN=$LBPBIN/$PDIR
 
 echo "<INFO> Installation as root user started."
 
-echo "<INFO> Adding Testing branch to apt sources..."
-echo 'deb http://ftp.de.debian.org/debian/ testing main non-free contrib' > /etc/apt/sources.list.d/testing.list
-echo 'APT::Default-Release "stable";' > /etc/apt/apt.conf.d/99myDefaultRelease
-apt-key adv --keyserver keyserver.ubuntu.com --recv-keys  04EE7237B7D453EC 648ACFD622F3D138
-export APT_LISTCHANGES_FRONTEND=none
-export DEBIAN_FRONTEND=noninteractive
-dpkg --configure -a
-APT_LISTCHANGES_FRONTEND=none DEBIAN_FRONTEND=noninteractive apt-get -y -q --allow-unauthenticated --fix-broken --reinstall --allow-downgrades --allow-remove-essential --allow-change-held-packages --purge autoremove
-APT_LISTCHANGES_FRONTEND=none DEBIAN_FRONTEND=noninteractive apt-get -q -y --allow-unauthenticated --allow-downgrades --allow-remove-essential --allow-change-held-packages update
+#echo "<INFO> Adding Testing branch to apt sources..."
+#echo 'deb http://ftp.de.debian.org/debian/ testing main non-free contrib' > /etc/apt/sources.list.d/testing.list
+#echo 'APT::Default-Release "stable";' > /etc/apt/apt.conf.d/99myDefaultRelease
+#apt-key adv --keyserver keyserver.ubuntu.com --recv-keys  04EE7237B7D453EC 648ACFD622F3D138
+#export APT_LISTCHANGES_FRONTEND=none
+#export DEBIAN_FRONTEND=noninteractive
+#dpkg --configure -a
+#APT_LISTCHANGES_FRONTEND=none DEBIAN_FRONTEND=noninteractive apt-get -y -q --allow-unauthenticated --fix-broken --reinstall --allow-downgrades --allow-remove-essential --allow-change-held-packages --purge autoremove
+#APT_LISTCHANGES_FRONTEND=none DEBIAN_FRONTEND=noninteractive apt-get -q -y --allow-unauthenticated --allow-downgrades --allow-remove-essential --allow-change-held-packages update
 
-echo "<INFO> Installing owserver from Testing branch (stable branch is broken in Debian Buster)..."
-APT_LISTCHANGES_FRONTEND=none DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::=--force-confdef --no-install-recommends -q -y --allow-unauthenticated --fix-broken --reinstall --allow-downgrades --allow-remove-essential --allow-change-held-packages -t testing install owfs owserver owhttpd owftpd owfs-fuse owfs-common owserver libow-3.2-3 libftdi1-2
+#echo "<INFO> Installing owserver from Testing branch (stable branch is broken in Debian Buster)..."
+#APT_LISTCHANGES_FRONTEND=none DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::=--force-confdef --no-install-recommends -q -y --allow-unauthenticated --fix-broken --reinstall --allow-downgrades --allow-remove-essential --allow-change-held-packages -t testing install owfs owserver owhttpd owftpd owfs-fuse owfs-common owserver libow-3.2-3 libftdi1-2
 
 echo "<INFO> Stopping and reconfigure OWFS services..."
 systemctl stop owserver
 systemctl stop owfs
 systemctl stop owftpd
 systemctl stop owhttpd
+
+echo "<INFO> Repairing broken Debian OWFS package."
+sed -i 's@^ExecStart=.*$@ExecStart=/usr/bin/owserver -c /etc/owfs.conf --foreground@' /lib/systemd/system/owserver.service
+
 systemctl disable owfs
 systemctl disable owftpd
 systemctl enable owserver
@@ -54,5 +58,9 @@ echo "# LoxBerry 1-Wire-NG Plugin device rule file - DO NOT EDIT BY HAND!" > /et
 echo "SUBSYSTEMS==\"usb\", KERNEL==\"ttyUSB[0-9]*\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", GROUP=\"loxberry\", MODE=\"0666\", SYMLINK+=\"serial/1wire/\$env{ID_SERIAL_SHORT}\", RUN+=\"$PBIN/createftdi.sh \$env{ID_SERIAL_SHORT}\"" >> /etc/udev/rules.d/99-1-Wire-NG.rules
 udevadm control --reload-rules 
 udevadm trigger
+
+echo "<INFO> Starting owfs."
+systemctl start owserver
+systemctl start owhttpd
 
 exit 0

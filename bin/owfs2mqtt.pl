@@ -13,11 +13,11 @@ use strict;
 use Data::Dumper;
 
 # Version of this script
-my $version = "2.0.4";
+my $version = "2.0.5";
 
 # Globals
-my $now;
-my $last;
+my $now = "0";
+my $last = "0";
 my $lastdevices = "0";
 my $lastvalues = "0";
 my %lastvalues;
@@ -191,6 +191,7 @@ while (1) {
 
 	# Scan for devices
 	if ( $now > $lastdevices + $refresh_devices ) {
+		LOGINF "Current time: $now Last device check: $lastdevices -> scan busses";
 		$lastdevices = time();
 		&readdevices();
 		$republish = 1;
@@ -198,6 +199,7 @@ while (1) {
 
 	# Scan for values - default configs
 	if ( $now > $lastvalues + $refresh_values ) {
+		LOGINF "Current time: $now Last values check: $lastvalues -> read values";
 		$lastvalues = time();
 		foreach (@devices) {
 			my $publish = 0;
@@ -255,6 +257,7 @@ while (1) {
 	}
 	
 	# Scan for values - custom configs
+	LOGINF "Current time: $now -> read custom configured values";
 	foreach (@customdevices) {
 		my $publish = 0;
 		my $device = $_;
@@ -356,9 +359,9 @@ sub readdevices
 	
 	LOGINF "Scanning for connected and configured devices...";
 	LOGINF "Scanning for available busses...";
-	my $busses;
 	
 	# Scan for busses
+	my $busses;
 	eval {
 		$busses = $owserver->dir("/");
 	};
@@ -371,6 +374,7 @@ sub readdevices
 	
 	# Set default values
 	my @temp = split(/,/,$busses);
+	@busses = "";
 	for (@temp) {
 		if ( $_ =~ /^\/bus.*$/ ) {
 			LOGDEB "Found Bus $_";
@@ -378,15 +382,20 @@ sub readdevices
 		}
 	}
 
-	my $devices;
+	@devices = undef;
+	@customdevices = undef;
+	%family = undef;
+	%bus = undef;
+
+	#print Dumper @busses;
+
 	foreach my $bus (@busses) {
+
+		next if $bus eq "";
 
 		#$bus = "/bus." . $bus;
 		LOGINF "Scanning for devices at $bus...";
-		@devices = "";
 		my $tempdevices;
-		%family = undef;
-		%bus = undef;
 	
 		# Scan Bus
 		eval {
@@ -437,16 +446,21 @@ sub readdevices
 	LOGINF "Checking all manually configured devices...";
 	foreach (keys %$devcfg) {
 		LOGDEB "Checking $_...";
-		if ( $devcfg->{"$_"}->{"configured"} && !defined($family{$_}) ) {
+		my $device = $_;
+		if ( $devcfg->{"$device"}->{"configured"} && !defined($family{$device}) ) {
 			LOGDEB "Custom:  Config for $_ found";
+			my ($family,$address) = split /\./, $device;
+			# Fill hashes/arrays
+			$family{$device} = $family;
+			$bus{$device} = $bus;
 			push (@customdevices, $_);
 			# Set lower looptime if needed
-			if ( $devcfg->{"$_"}->{"refresh"} && $devcfg->{"$_"}->{"refresh"} < $looptime ) {
-				$looptime = $devcfg->{"$_"}->{"refresh"};
+			if ( $devcfg->{"$device"}->{"refresh"} && $devcfg->{"$device"}->{"refresh"} < $looptime ) {
+				$looptime = $devcfg->{"$device"}->{"refresh"};
 				LOGDEB "Change Looptime: $looptime";
 			}
 		} else {
-			LOGDEB "$_ not manually configured or already known from bus scanning -> ignore";
+			LOGDEB "$device not manually configured or already known from bus scanning -> ignore";
 		}
 	}
 

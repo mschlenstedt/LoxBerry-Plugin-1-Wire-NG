@@ -129,6 +129,8 @@ exit;
 sub start
 {
 
+	my $exitcode;
+
 	LOGINF "START called...";
 	LOGINF "Starting OWServer...";
 	system ("sudo systemctl start owserver");
@@ -140,10 +142,14 @@ sub start
 	LOGDEB "Call: $lbpbindir/owfs2mqtt.pl --verbose=$verboseval";
 		eval {
 			system("$lbpbindir/owfs2mqtt.pl --verbose=$verboseval &");
-		} or do {
+		};
+		$exitcode = $? >> 8;
+		if ($exitcode != 0) {
 			my $error = $@ || 'Unknown failure';
 			LOGERR "Could not start $lbpbindir/owfs2mqtt.pl --verbose=$verboseval - $error";
-		};
+		} else {
+			LOGOK "$lbpbindir/owfs2mqtt.pl --verbose=$verboseval started successfully.";
+		}
 	
 	return(0);
 
@@ -162,6 +168,8 @@ sub stop
 
 	LOGINF "Stopping owfs2mqtt instances...";
 	system ("pkill -f owfs2mqtt.pl");
+
+	LOGOK "Done.";
 
 	return(0);
 
@@ -196,7 +204,7 @@ sub check
 	$output = qx(sudo systemctl -q status owserver);
 	$exitcode  = $? >> 8;
 	if ($exitcode != 0) {
-		LOGERR "owServer seems to be dead - Error $exitcode";
+		LOGWARN "owServer seems to be dead - Error $exitcode";
 		$errors++;
 	}
 
@@ -204,7 +212,7 @@ sub check
 	$output = qx(sudo systemctl -q status owhttpd);
 	$exitcode  = $? >> 8;
 	if ($exitcode != 0) {
-		LOGERR "owhttpd seems to be dead - Error $exitcode";
+		LOGWARN "owhttpd seems to be dead - Error $exitcode";
 		$errors++;
 	}
 
@@ -212,7 +220,7 @@ sub check
 	$output = qx(pgrep -f owfs2mqtt.pl);
 	$exitcode  = $? >> 8;
 	if ($exitcode != 0) {
-		LOGERR "owfs2mqtt seems to be dead - Error $exitcode";
+		LOGWARN "owfs2mqtt seems to be dead - Error $exitcode";
 		$errors++;
 	}
 
@@ -227,7 +235,7 @@ sub check
 			&restart();
 		}
 	} else {
-		LOGINF "All processes seems to be alive. Nothing to do.";	
+		LOGOK "All processes seems to be alive. Nothing to do.";	
 		my $response = LoxBerry::System::write_file("/dev/shm/1-wire-ng-watchdog-fails.dat", "0");
 	}
 
