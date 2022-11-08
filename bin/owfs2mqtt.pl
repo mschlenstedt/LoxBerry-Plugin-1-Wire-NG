@@ -318,11 +318,16 @@ while (1) {
 					} else {
 						# Figure out on which bus we are
 						$data{"bus"} = "-9999";
+						LOGDEB "Searching correct bus";
 						foreach (@busses) {
+							LOGDEB "Check $_" . "$customuncached" . "/$device";
 							my $test = owreadpresent($_ . "$customuncached" . "/$device");
+							LOGDEB "Result is: $test - Bus is $_";
 							if ($test) {
 								my $busclear = $_;
+								LOGDEB "Bus is: $_";
 								$busclear =~ s/^\/bus\.//s;
+								LOGDEB "Busclear is: $_";
 								$data{"bus"} = "$busclear";
 								last;
 							}
