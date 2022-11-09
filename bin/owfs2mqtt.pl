@@ -13,7 +13,7 @@ use strict;
 use Data::Dumper;
 
 # Version of this script
-my $version = "2.0.5";
+my $version = "2.0.6";
 
 # Globals
 my $now = "0";
@@ -318,10 +318,11 @@ while (1) {
 					} else {
 						# Figure out on which bus we are
 						$data{"bus"} = "-9999";
-						foreach (@busses) {
-							my $test = owreadpresent($_ . "$customuncached" . "/$device");
+						foreach my $bus (@busses) {
+							next if $bus eq "";
+							my $test = owreadpresent($bus . "$customuncached" . "/$device");
 							if ($test) {
-								my $busclear = $_;
+								my $busclear = $bus;
 								$busclear =~ s/^\/bus\.//s;
 								$data{"bus"} = "$busclear";
 								last;
@@ -546,7 +547,8 @@ sub owreadpresent
 	my ($owdevice, $owvalue) = @_;
 	my $value;
 	eval {
-		$value = $owserver->read( "$bus" . "$owdevice/present" );
+		#$value = $owserver->read( "$bus" . "$owdevice/present" );
+		$value = $owserver->present( "$owdevice" );
 	};
 	if (!$value) {
 		$value = "0";
