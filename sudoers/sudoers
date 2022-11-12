@@ -1,3 +1,2 @@
 loxberry ALL = NOPASSWD: REPLACELBPBINDIR/watchdog.pl
 loxberry ALL = NOPASSWD: REPLACELBPBINDIR/create1wgpio.sh
-loxberry ALL = NOPASSWD: /usr/bin/pkill -f owserver

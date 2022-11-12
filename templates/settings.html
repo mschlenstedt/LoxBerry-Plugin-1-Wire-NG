@@ -78,7 +78,7 @@
 					<label	class="control-label" for="i2c"><TMPL_VAR OWFS.LABEL_I2C></label>
 					<input type="checkbox" name="i2c" id="i2c"><br>
 					<label	class="control-label" for="gpio"><TMPL_VAR OWFS.LABEL_GPIO></label>
-					<input type="checkbox" name="gpio" id="gpio"><br>
+					<input onclick="refreshOWFSForm()" type="checkbox" name="gpio" id="gpio"><br>
 					<label	class="control-label" for="pullup"><TMPL_VAR OWFS.LABEL_PULLUP></label>
 					<input type="checkbox" name="pullup" id="pullup"><br>
 
@@ -570,62 +570,6 @@ function update_pids()
 
 }
 
-// Show device downloads
-function deviceDownloads ( intBridgeId, nukiId ) {
-	$("#popupdevicesdownloadsheader").text( storedDevices[nukiId].name );
-	$("#popupDownloads").popup("open");
-	detHtmlObj = $("#popupdevicesdownloadscontent");
-	detHtmlObj.empty();
-	detHtmlObj.attr("style", "color:blue;").html("<TMPL_VAR COMMON.HINT_PLEASE_WAIT>");
-	
-	$.ajax({ 
-		type: 'POST',
-		data: { 
-			ajax: 'getdevicedownloads', 
-			secpin: secpin, 
-			bridgeId: intBridgeId,
-			nukiId: nukiId  }
-	})
-	.fail(function( data ) {
-		detHtmlObj.attr("style", "color:red;").html("<TMPL_VAR COMMON.ERROR_COULD_NOT_GET_DATA>");
-		console.log( "checktoken Fail", data );
-	})
-	.done(function( data ) {
-		console.log( "deviceDownloads Success: ", data );
-		if(data.secpinerror) {
-			securePINwrong();
-			return;
-		}
-		detHtmlObj.empty();
-		detHtmlObj.attr("style", "color:black;");
-		detHtmlObj.append($('\
-			<table class="mqtttable">\
-			<tr>\
-				<th class="mqtttable_vicol ui-bar-a" colspan=2"><TMPL_VAR DEVICES.VIVO_HEADING_LOXONE_TEMPLATES></th>\
-			</tr>\
-			<tr>\
-				<td class="mqtttable_vicol"><TMPL_VAR DEVICES.VIVO_LABEL_OUTPUT_TEMPLATE></td>\
-				<td class="mqtttable_desccol">\
-					<a download='+data.payload.voFilename+' href="data:text/plain;base64,'+b64EncodeUnicode(data.payload.vo)+'">Download <TMPL_VAR DEVICES.VIVO_LABEL_OUTPUT_TEMPLATE></a>\
-				</td>\
-			</tr>\
-			<tr>\
-				<td class="mqtttable_vicol"><TMPL_VAR DEVICES.VIVO_LABEL_INPUT_TEMPLATE></td>\
-				<td class="mqtttable_desccol">\
-					<a download='+data.payload.viFilename+' href="data:text/plain;base64,'+b64EncodeUnicode(data.payload.vi)+'">Download <TMPL_VAR DEVICES.VIVO_LABEL_INPUT_TEMPLATE></a>\
-				</td>\
-			</tr>\
-			</table>\
-			<p><TMPL_VAR DEVICES.VIVO_HINT_TEMPLATES></p>'));
-		
-		detHtmlObj.append($(data.payload.mqttTable));
-	
-	
-	})
-	
-	
-}
-
 // Search for Devices
 $('#btnsearchdevices').click( function(e) {
 	console.log("Search for Devices");
@@ -695,6 +639,7 @@ function saveOWFS() {
 			serial2usb: $('#serial2usb').is(":checked"),
 			i2c: $('#i2c').is(":checked"),
 			gpio: $('#gpio').is(":checked"),
+			pullup: $('#pullup').is(":checked"),
 			httpdport: $('#httpdport').val(),
 			serverport: $('#serverport').val(),
 			tempscale: $('#tempscale').val(),
@@ -904,6 +849,11 @@ function getconfig() {
 			} else {
 				$("#gpio").prop('checked', false).checkboxradio("refresh");
 			}
+			if(data.pullup === "true") {
+				$("#pullup").prop('checked', true).checkboxradio("refresh");
+			} else {
+				$("#pullup").prop('checked', false).checkboxradio("refresh");
+			}
 			if(data.tempscale === "C") {
 				$("#tempscale").val("C").change();
 			} else {
@@ -950,6 +900,11 @@ $("#MQTTUseMQTTGateway").on("click", refreshMQTTForm);
 function refreshOWFSForm() {
 	console.log("refreshOWFSForm");
 	$(".OWFS").removeClass("ui-state-disabled");
+	if( $("#gpio").is(":checked") ) {
+		$('#pullup').prop('disabled', false).checkboxradio('refresh');
+	} else {
+		$('#pullup').prop('disabled', true).checkboxradio('refresh');
+	}
 }
 
 // Open OWFS WebUI
