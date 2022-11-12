@@ -32,6 +32,7 @@ use Time::HiRes qw ( sleep );
 use warnings;
 use strict;
 use Data::Dumper;
+use OWNet;
 
 ##########################################################################
 # Variables
@@ -260,12 +261,12 @@ sub form_print
 	$navbar{98}{URL} = 'index.cgi?form=log';
 	$navbar{98}{active} = 1 if $q->{form} eq "log";
 
-	$navbar{99}{Name} = "$L{'COMMON.LABEL_CREDITS'}";
-	$navbar{99}{URL} = 'index.cgi?form=credits';
-	$navbar{99}{active} = 1 if $q->{form} eq "credits";
+	#$navbar{99}{Name} = "$L{'COMMON.LABEL_CREDITS'}";
+	#$navbar{99}{URL} = 'index.cgi?form=credits';
+	#$navbar{99}{active} = 1 if $q->{form} eq "credits";
 	
 	# Template
-	LoxBerry::Web::lbheader($L{'COMMON.LABEL_PLUGINTITLE'} . " V$version", "https://www.loxwiki.eu/x/3gmcAw", "");
+	LoxBerry::Web::lbheader($L{'COMMON.LABEL_PLUGINTITLE'} . " V$version", "https://wiki.loxberry.de/plugins/1_wire_ng/start", "");
 	print $template->output();
 	LoxBerry::Web::lbfooter();
 	
@@ -396,7 +397,6 @@ sub savedevice
 sub searchdevices
 {
  	my $errors;
-	use OWNet;
 	
  	# Devices config
  	my $jsonobjdevices = LoxBerry::JSON->new();
@@ -507,6 +507,7 @@ sub saveowfs
 	$cfg->{serial2usb} = $q->{serial2usb};
 	$cfg->{i2c} = $q->{i2c};
 	$cfg->{gpio} = $q->{gpio};
+	$cfg->{pullup} = $q->{pullup};
 	$cfg->{tempscale} = $q->{tempscale};
 	$cfg->{uncached} = $q->{uncached};
 	$q->{refreshdev} =~ s/,/\./g;
@@ -533,12 +534,12 @@ sub saveowfs
 			}
 			close $fh1;
 		}
-		if ( is_enabled($q->{gpio}) ) {
-			eval {
-				system("sudo $lbpbindir/create1wgpio.sh >/dev/null 2>&1");
-			};
-		}
 		close $fh;
+		#if ( is_enabled($q->{gpio}) ) {
+		eval {
+			system("sudo $lbpbindir/create1wgpio.sh >/dev/null 2>&1");
+		};
+		#}
 	};
 	if ($@) {
 		$errors++;
@@ -598,172 +599,6 @@ sub restartservices
 
 }
 
-
-# Get VIs/VOs and data for nukiId
-sub getdevicedownloads
-{
-	my ($intBridgeId, $nukiId) = @_;
-	
-	my $jsonobjbridges = LoxBerry::JSON->new();
-	#my $bridges = $jsonobjbridges->open(filename => $CFGFILEBRIDGES, readonly => 1);
-	my $jsonobjdevices = LoxBerry::JSON->new();
-	my $devices = $jsonobjdevices->open(filename => $CFGFILEDEVICES, readonly => 1);
-	my $jsonobjmqtt = LoxBerry::JSON->new();
-	my $mqttconfig = $jsonobjmqtt->open(filename => $CFGFILEMQTT, readonly => 1);
-	
-	my %payload;
-	my $error = 0;
-	my $message = "";
-	my $xml;
-	
-	#if(! defined $bridges->{$intBridgeId} ) {
-	#	return (1, "BridgeId does not exist", undef);
-	#} elsif (! defined $devices->{$nukiId} ) {
-	#	return (1, "NukiId does not exist", undef);
-	#}
-	
-	require "$lbpbindir/libs/LoxBerry/LoxoneTemplateBuilder.pm";
-	require HTML::Entities;
-
- 
-	# Get current date
-	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
-	$year+=1900;
-	
-	my $currdev = $devices->{$nukiId};
-	my $devtype = $currdev->{deviceType};
-	
-	#LOGDEB "P$$ Device type is $devtype ($deviceType{$devtype})";
-	
-	## Create VO template
-	#####################
-	my $VO = LoxBerry::LoxoneTemplateBuilder->VirtualOut(
-		Title => "NUKI " . $currdev->{name},
-		Comment => "Created by LoxBerry Nuki Plugin ($mday.$mon.$year)",
-		#Address => "http://".$bridges->{$intBridgeId}->{ip}.":".$bridges->{$intBridgeId}->{port},
- 	);
-	
-	# Lock Actions
-
-	# Analog action
-	$VO->VirtualOutCmd(
-		Title => "Analogue Lock Action",
-		#CmdOn => "/lockAction?nukiId=$nukiId&deviceType=$devtype&action=<v>&nowait=1&token=$bridges->{$intBridgeId}->{token}",
-		Analog => 1
-	);
-
-	# Digital actions
-	#my $devlockActions = $lockAction{$devtype};
-	#foreach my $actionkey ( sort keys %$devlockActions ) {
-	#	my $actionname = $devlockActions->{$actionkey};
-	#	$actionname  =~ s/\b(\w)(\w*)/\U$1\L$2/g;
-	#	LOGDEB "P$$ actionkey $actionkey actionname $actionname";
-	#	$VO->VirtualOutCmd(
-	#		Title => $actionname,
-	#		CmdOn => "/lockAction?nukiId=$nukiId&deviceType=$devtype&action=$actionkey&nowait=1&token=$bridges->{$intBridgeId}->{token}"
-	#	);
-	#}
-
-	
-	$xml = $VO->output;
-	$payload{vo} = $xml;
-	$payload{voFilename} = "VO_NUKI_$currdev->{name}.xml";
-	
-	## Create VI template (via Virtual HTTP Input)
-	##############################################
-	my $topic_from_cfg = $mqttconfig->{topic};
-	my $topic = $topic_from_cfg;
-	$topic =~ tr/\//_/;
-		
-	my $VI = LoxBerry::LoxoneTemplateBuilder->VirtualInHttp(
-		Title => "NUKI Status " . $currdev->{name},
-		Comment => "Created by LoxBerry Nuki Plugin ($mday.$mon.$year)",
- 	);
-	
-	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_batteryCritical", Comment => "$currdev->{name} Battery Critical");
-	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_mode", Comment => "$currdev->{name} Mode");
-	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_nukiId", Comment => "$currdev->{name} Nuki ID");
-	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_state", Comment => "$currdev->{name} State");
-	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_sentBy", Comment => "$currdev->{name} Sent By");
-	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_sentAtTimeLox", Comment => "$currdev->{name} Last Updated");
-	
-	$xml = $VI->output;
-	$payload{vi} = $xml;
-	$payload{viFilename} = "VI_NUKI_$currdev->{name}.xml";
-	
-	## Create MQTT representation of inputs
-	#######################################
-	
-	
-	my $m = "";
-	if($topic) {
-		$m .= '<table class="mqtttable">'."\n";
-		$m .= "<tr>\n";
-		$m .= '<th class="mqtttable_headrow mqtttable_vicol ui-bar-a">Loxone VI (via MQTT)</td>'."\n";
-		$m .= '<th class="mqtttable_headrow mqtttable_desccol ui-bar-a">Description</td>'."\n";
-		$m .= '</tr>'."\n";
-		
-		$m .= '<tr>'."\n";
-		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_batteryCritical</td>\n";
-		$m .= '<td class="mqtttable_desccol">0...Battery ok 1 ... Battery low</td>'."\n";
-		$m .= "</tr>\n";
-		
-		$m .= "<tr>\n";
-		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_deviceType</td>\n";
-		$m .= '<td class="mqtttable_desccol">';
-		#foreach( sort keys %deviceType ) {
-		#	$m .= "$_...$deviceType{$_} ";
-		#}
-		$m .= "</td>\n";
-		$m .= "</tr>\n";
-		
-		$m .= "<tr>\n";
-		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_mode</td>\n";
-		if( $devtype eq "0") {
-			$m .= '<td class="mqtttable_desccol">'."Always '2' after complete setup</td>\n";
-		} elsif ($devtype eq "2") {
-			$m .= '<td class="mqtttable_desccol">'."2...Door mode 3...Continuous mode</td>\n";
-		} else {
-			$m .= "<td>(unknown device type)</td>\n";
-		}
-		$m .= "</tr>\n";
-		
-		$m .= "<tr>\n";
-		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_nukiId</td>\n";
-		$m .= '<td class="mqtttable_desccol">ID of your Nuki device</td>'."\n";
-		$m .= "</tr>\n";
-		
-		$m .= "<tr>\n";
-		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_state</td>\n";
-		$m .= '<td class="mqtttable_desccol">';
-		#foreach( sort {$a<=>$b} keys %{$lockState{$devtype}} ) {
-		#	$m .= "$_...$lockState{$devtype}{$_} ";
-		#}
-		$m .= "</td>\n";
-		$m .= "</tr>\n";
-
-		$m .= "<tr>\n";
-		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_sentBy</td>\n";
-		$m .= '<td class="mqtttable_desccol">'."1...callback 2...cron 3...manual</td>\n";
-		$m .= "</tr>\n";
-
-		$m .= "<tr>\n";
-		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_sentAtTimeLox</td>\n";
-		$m .= '<td class="mqtttable_desccol">'."Loxone Time representation of the update time &lt;v.u&gt;</td>\n";
-		$m .= "</tr>\n";
-	
-		$m .= "</table>\n";
-	
-	}
-	$payload{mqttTable} = $m;
-		
-	$error = 0;
-	$message = "Generated successfully";
-	return ($error, $message, \%payload);
-
-
-
-}
 
 END {
 }

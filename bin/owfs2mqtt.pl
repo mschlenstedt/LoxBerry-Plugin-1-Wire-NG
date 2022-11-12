@@ -13,7 +13,7 @@ use strict;
 use Data::Dumper;
 
 # Version of this script
-my $version = "2.0.6";
+my $version = "2.1.0";
 
 # Globals
 my $now = "0";
@@ -240,7 +240,7 @@ while (1) {
 				} else {
 					LOGDEB "Default: Read Value: " . $uncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
 					$data{"present"} = $value;
-					if ($value eq "0") {
+					if ($value < 1) {
 						$data{"bus"} = "-1";
 					}
 					$cache{"$device"}{"present"} = $value;
@@ -313,7 +313,7 @@ while (1) {
 				} else {
 					LOGDEB "Custom:  Read Value: " . $customuncached . "/" . $device . "/present: " . $value . " -> Value changed -> publishing";
 					$data{"present"} = $value;
-					if ($value eq "0") {
+					if ($value < 1) {
 						$data{"bus"} = "-1";
 					} else {
 						# Figure out on which bus we are
@@ -321,7 +321,7 @@ while (1) {
 						foreach my $bus (@busses) {
 							next if $bus eq "";
 							my $test = owreadpresent($bus . "$customuncached" . "/$device");
-							if ($test) {
+							if ($test > 0) {
 								my $busclear = $bus;
 								$busclear =~ s/^\/bus\.//s;
 								$data{"bus"} = "$busclear";
@@ -547,8 +547,7 @@ sub owreadpresent
 	my ($owdevice, $owvalue) = @_;
 	my $value;
 	eval {
-		#$value = $owserver->read( "$bus" . "$owdevice/present" );
-		$value = $owserver->present( "$owdevice" );
+		$value = $owserver->read( "$owdevice/present" );
 	};
 	if (!$value) {
 		$value = "0";
