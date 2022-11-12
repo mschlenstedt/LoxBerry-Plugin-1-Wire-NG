@@ -402,14 +402,15 @@ sub readdevices
 		eval {
 			$tempdevices = $owserver->dir("$bus");
 		};
-		if ($@ || !$tempdevices) {
-			my $error = $@ || 'Unknown failure';
-        		LOGERR "An error occurred - $error Devices: $tempdevices";
-			exit (1);
-		};
+		#if ($@ || !$tempdevices) {
+		#	my $error = $@ || 'Unknown failure';
+        	#	LOGERR "An error occurred - $error Devices: $tempdevices";
+		#	exit (1);
+		#};
 	
 		LOGDEB "Found entries from the bus: $tempdevices";
-
+		next if $tempdevices eq "";
+		
 		# Set default values
 		my @temp = split(/,/,$tempdevices);
 		for (@temp) {
