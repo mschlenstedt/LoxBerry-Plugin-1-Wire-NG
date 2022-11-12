@@ -554,9 +554,6 @@ sub owreadpresent
 	my ($owdevice, $owvalue) = @_;
 	my $value;
 	eval {
-                my $tmp = $owserver->dir("/uncached"); # Just to refresh device list
-        };
-	eval {
 		$value = $owserver->read( "$owdevice/present" );
 	};
 	if (!$value) {
