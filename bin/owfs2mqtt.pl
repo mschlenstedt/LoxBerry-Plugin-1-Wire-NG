@@ -201,6 +201,9 @@ while (1) {
 	if ( $now > $lastvalues + $refresh_values ) {
 		LOGINF "Current time: $now Last values check: $lastvalues -> read values";
 		$lastvalues = time();
+		eval {
+			my $tmp = $owserver->dir("/uncached"); # Just to refresh device list
+		};
 		foreach (@devices) {
 			my $publish = 0;
 			my $device = $_;
@@ -258,6 +261,9 @@ while (1) {
 	
 	# Scan for values - custom configs
 	LOGINF "Current time: $now -> read custom configured values";
+	eval {
+		my $tmp = $owserver->dir("/uncached"); # Just to refresh device list
+	};
 	foreach (@customdevices) {
 		my $publish = 0;
 		my $device = $_;
@@ -402,14 +408,15 @@ sub readdevices
 		eval {
 			$tempdevices = $owserver->dir("$bus");
 		};
-		if ($@ || !$tempdevices) {
-			my $error = $@ || 'Unknown failure';
-        		LOGERR "An error occurred - $error Devices: $tempdevices";
-			exit (1);
-		};
+		#if ($@ || !$tempdevices) {
+		#	my $error = $@ || 'Unknown failure';
+        	#	LOGERR "An error occurred - $error Devices: $tempdevices";
+		#	exit (1);
+		#};
 	
 		LOGDEB "Found entries from the bus: $tempdevices";
-
+		next if $tempdevices eq "";
+		
 		# Set default values
 		my @temp = split(/,/,$tempdevices);
 		for (@temp) {
