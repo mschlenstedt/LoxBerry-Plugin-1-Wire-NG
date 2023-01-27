@@ -2,6 +2,7 @@
 
 use LoxBerry::System;
 use LoxBerry::Log;
+use LoxBerry::IO;
 use LoxBerry::JSON;
 use Getopt::Long;
 use Net::MQTT::Simple;
@@ -13,7 +14,7 @@ use strict;
 use Data::Dumper;
 
 # Version of this script
-my $version = "2.1.0";
+my $version = "2.2.0";
 
 # Globals
 my $now = "0";
@@ -587,35 +588,38 @@ sub mqttconnect
 {
 
 	$ENV{MQTT_SIMPLE_ALLOW_INSECURE_LOGIN} = 1;
-	my $mqtt_username;
-	my $mqtt_password;
-	my $mqttbroker;
-	my $mqttport;
+
+	# From LoxBerry 3.0 on, we have MQTT onboard
+	my $mqttcred = LoxBerry::IO::mqtt_connectiondetails();
+	my $mqtt_username = $mqttcred->{brokeruser};
+	my $mqtt_password = $mqttcred->{brokerpass};
+	my $mqttbroker = = $mqttcred->{brokerhost};
+	my $mqttport = $mqttcred->{brokerhost};
 	
 	# Use MQTT Gateway credentials
-	if ( is_enabled( $mqttcfg->{"usemqttgateway"} ) ) {
-		LOGINF "Using MQTT Settings from MQTT Gateway Plugin";
-		my $plugin = LoxBerry::System::plugindata("mqttgateway");
-		# Read MQTT Cred Configuration
-		my $mqttgwcfgfile = $lbhomedir . "/config/plugins/" . $plugin->{"PLUGINDB_FOLDER"} . "/cred.json";
-		my $jsonobjmqttgw = LoxBerry::JSON->new();
-		my $mqttgwcfg = $jsonobjmqttgw->open(filename => $mqttgwcfgfile);
-		if ( !%$mqttgwcfg ) {
-			LOGERR "Cannot open configuration $mqttgwcfgfile. Exiting.";
-			exit (1);
-		}
-		$mqtt_username = $mqttgwcfg->{"Credentials"}->{"brokeruser"};
-		$mqtt_password = $mqttgwcfg->{"Credentials"}->{"brokerpass"};
-		$mqttbroker = "localhost";
-		$mqttport = "1883";
+	#if ( is_enabled( $mqttcfg->{"usemqttgateway"} ) ) {
+	#	LOGINF "Using MQTT Settings from MQTT Gateway Plugin";
+	#	my $plugin = LoxBerry::System::plugindata("mqttgateway");
+	#	# Read MQTT Cred Configuration
+	#	my $mqttgwcfgfile = $lbhomedir . "/config/plugins/" . $plugin->{"PLUGINDB_FOLDER"} . "/cred.json";
+	#	my $jsonobjmqttgw = LoxBerry::JSON->new();
+	#	my $mqttgwcfg = $jsonobjmqttgw->open(filename => $mqttgwcfgfile);
+	#	if ( !%$mqttgwcfg ) {
+	#		LOGERR "Cannot open configuration $mqttgwcfgfile. Exiting.";
+	#		exit (1);
+	#	}
+	#	$mqtt_username = $mqttgwcfg->{"Credentials"}->{"brokeruser"};
+	#	$mqtt_password = $mqttgwcfg->{"Credentials"}->{"brokerpass"};
+	#	$mqttbroker = "localhost";
+	#	$mqttport = "1883";
 	# Use own MQTT credentials
-	} else {
-		LOGINF "Using my own MQTT Settings";
-		$mqtt_username = $mqttcfg->{"username"};
-		$mqtt_password = $mqttcfg->{"password"};
-		$mqttbroker = $mqttcfg->{"server"};
-		$mqttport = $mqttcfg->{"port"};
-	}
+	#} else {
+	#	LOGINF "Using my own MQTT Settings";
+	#	$mqtt_username = $mqttcfg->{"username"};
+	#	$mqtt_password = $mqttcfg->{"password"};
+	#	$mqttbroker = $mqttcfg->{"server"};
+	#	$mqttport = $mqttcfg->{"port"};
+	#}
 	if (!$mqttbroker || !$mqttport) {
         	LOGERR "MQTT isn't configured completely. I need at least broker and port.";
 		exit (1);

@@ -217,9 +217,9 @@ sub form_devices
 sub form_mqtt
 {
 	$template->param("FORM_MQTT", 1);
-	my $mqttplugindata = LoxBerry::System::plugindata("mqttgateway");
-	$template->param("MQTTGATEWAY_INSTALLED", 1) if($mqttplugindata);
-	$template->param("MQTTGATEWAY_PLUGINDBFOLDER", $mqttplugindata->{PLUGINDB_FOLDER}) if($mqttplugindata);
+	my $lbversion = version->parse(vers_tag(LoxBerry::System::lbversion()));
+	$lbversion =~ s/^v(\d+)\..*/$1/r; # Major Version, e. g. "2"
+	$template->param("MQTTGATEWAY_LB2", 1) if($lbversion < 3);
 	return();
 }
 
@@ -472,11 +472,11 @@ sub savemqtt
 	my $jsonobj = LoxBerry::JSON->new();
 	my $cfg = $jsonobj->open(filename => $CFGFILEMQTT);
 	$cfg->{topic} = $q->{topic};
-	$cfg->{usemqttgateway} = $q->{usemqttgateway};
-	$cfg->{server} = $q->{server};
-	$cfg->{port} = $q->{port};
-	$cfg->{username} = $q->{username};
-	$cfg->{password} = $q->{password};
+	#$cfg->{usemqttgateway} = $q->{usemqttgateway};
+	#$cfg->{server} = $q->{server};
+	#$cfg->{port} = $q->{port};
+	#$cfg->{username} = $q->{username};
+	#$cfg->{password} = $q->{password};
 	$jsonobj->write();
 	
 	# Save mqtt_subscriptions.cfg for MQTT Gateway
