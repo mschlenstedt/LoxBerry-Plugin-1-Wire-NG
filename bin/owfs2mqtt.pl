@@ -42,7 +42,6 @@ my $owserver;
 my $mqtt;
 my $error;
 my $verbose;
-my $mqtt;
 
 # If we were killed...
 $SIG{INT} = sub {
@@ -593,8 +592,8 @@ sub mqttconnect
 	my $mqttcred = LoxBerry::IO::mqtt_connectiondetails();
 	my $mqtt_username = $mqttcred->{brokeruser};
 	my $mqtt_password = $mqttcred->{brokerpass};
-	my $mqttbroker = = $mqttcred->{brokerhost};
-	my $mqttport = $mqttcred->{brokerhost};
+	my $mqttbroker = $mqttcred->{brokerhost};
+	my $mqttport = $mqttcred->{brokerport};
 	
 	# Use MQTT Gateway credentials
 	#if ( is_enabled( $mqttcfg->{"usemqttgateway"} ) ) {
