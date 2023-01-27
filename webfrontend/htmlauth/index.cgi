@@ -472,11 +472,6 @@ sub savemqtt
 	my $jsonobj = LoxBerry::JSON->new();
 	my $cfg = $jsonobj->open(filename => $CFGFILEMQTT);
 	$cfg->{topic} = $q->{topic};
-	#$cfg->{usemqttgateway} = $q->{usemqttgateway};
-	#$cfg->{server} = $q->{server};
-	#$cfg->{port} = $q->{port};
-	#$cfg->{username} = $q->{username};
-	#$cfg->{password} = $q->{password};
 	$jsonobj->write();
 	
 	# Save mqtt_subscriptions.cfg for MQTT Gateway

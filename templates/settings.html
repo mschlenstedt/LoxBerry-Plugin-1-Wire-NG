@@ -424,9 +424,6 @@ $(function() {
 		$('#btnsearchdevices').trigger("click");
 	}
 	
-	// MQTT Gateway button / url
-	$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank"><TMPL_VAR MQTT.LABEL_MQTT_GATEWAY_LINK></a>');
-
 	// Eventhandlers for "Edit" to enable and disable validation
 //	$("#popupEditButton").click( function(e) {
 //		allFormInputs = $("#popupEdit").find(":input");
@@ -507,17 +504,12 @@ $('#btnsearchdevices').click( function(e) {
 // Save MQTT Settings
 function saveMQTT() {
 	$("#mqtt_hint").attr("style", "color:blue").html("<TMPL_VAR MQTT.HINT_SAVE_SAVING>");
-	console.log ("Saving", $('#MQTTTopic').val(), $('#BrokerServer').val());
+	console.log ("Saving", $('#MQTTTopic').val());
 	$.ajax( { 
 			type: 'POST',
 			data: { 
 				ajax: 'savemqtt', 
-				topic: $('#MQTTTopic').val(),
-				usemqttgateway: $('#MQTTUseMQTTGateway').is(":checked"),
-				server: $('#BrokerServer').val(),
-				port: $('#BrokerPort').val(),
-				username: $('#BrokerUsername').val(),
-				password: $('#BrokerPassword').val()
+				topic: $('#MQTTTopic').val()
 			}
 		} )
 	.fail(function( data ) {
@@ -692,32 +684,6 @@ function getconfig() {
 			} else {
 				$("#MQTTTopic").val('owfs');
 			}
-			if(data.usemqttgateway === "true") {
-				$("#MQTTUseMQTTGateway").prop('checked', true).checkboxradio("refresh");
-			} else {
-				$("#MQTTUseMQTTGateway").prop('checked', false).checkboxradio("refresh");
-			}
-			if(data.server) {
-				$("#BrokerServer").val(data.server);
-			} else {
-				$("#BrokerServer").val('');
-			}
-			if(data.port) {
-				$("#BrokerPort").val(data.port);
-			} else {
-				$("#BrokerPort").val('');
-			}
-			if(data.username) {
-				$("#BrokerUsername").val(data.username);
-			} else {
-				$("#BrokerUsername").val('');
-			}
-			if(data.password) {
-				$("#BrokerPassword").val(data.password);
-			} else {
-				$("#BrokerPassword").val('');
-			}
-			refreshMQTTForm();
 		};
 
 		if ( formowfs ) {
@@ -796,17 +762,6 @@ function getconfig() {
 			$("#search_hint").attr("style", "color:black;").html("&nbsp;");
 		})
 }
-
-// Refresh MQTT Form
-function refreshMQTTForm() {
-	console.log("refreshMQTTForm");
-	$(".MQTT").removeClass("ui-state-disabled");
-	if( $("#MQTTUseMQTTGateway").is(":checked") ) 
-		$(".ownbroker").addClass("ui-state-disabled");
-	else 
-		$(".ownbroker").removeClass("ui-state-disabled");
-}
-$("#MQTTUseMQTTGateway").on("click", refreshMQTTForm);
 
 // Refresh OWFS Form
 function refreshOWFSForm() {
