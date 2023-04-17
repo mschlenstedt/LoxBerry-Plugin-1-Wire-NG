@@ -76,7 +76,10 @@
 					<label	class="control-label" for="serial2usb"><TMPL_VAR OWFS.LABEL_SERIAL2USB></label>
 					<input type="checkbox" name="serial2usb" id="serial2usb"><br>
 					<label	class="control-label" for="i2c"><TMPL_VAR OWFS.LABEL_I2C></label>
-					<input type="checkbox" name="i2c" id="i2c"><br>
+					<table><tr>
+					<td width="100%"><input type="checkbox" name="i2c" id="i2c" data-inline="true"></td>
+					<td> <a href="#" onclick="window.open('./scan_i2c.cgi', 'NewWindow1','scrollbars=true,toolbar=no,location=no,directories=no,status=no,menubar=no,copyhistory=no,width=800,height=800')" class="ui-btn ui-btn-inline ui-btn-icon-left ui-icon-search ui-corner-all"><TMPL_VAR "OWFS.BUTTON_SCANI2C"></a>
+					</tr></table><br>
 					<label	class="control-label" for="gpio"><TMPL_VAR OWFS.LABEL_GPIO></label>
 					<input onclick="refreshOWFSForm()" type="checkbox" name="gpio" id="gpio"><br>
 					<label	class="control-label" for="pullup"><TMPL_VAR OWFS.LABEL_PULLUP></label>
@@ -341,11 +344,12 @@
 		</TMPL_IF>
 		</b>
 		</center>
+
 		<br><br><br>
 		
 		<form>
 		
-		<div class="lb_flex-container MQTT ui-state-disabled">
+		<div class="lb_flex-container MQTT">
 			<div	class="lb_flex-item-label">
 				<label	class=	"control-label"
 					for="MQTTTopic"><TMPL_VAR MQTT.LABEL_MQTTTopic></label>

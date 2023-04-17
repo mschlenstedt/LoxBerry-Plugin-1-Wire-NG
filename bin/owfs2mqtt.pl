@@ -14,7 +14,7 @@ use strict;
 use Data::Dumper;
 
 # Version of this script
-my $version = "2.2.0";
+my $version = "2.3.0";
 
 # Globals
 my $now = "0";
@@ -189,6 +189,17 @@ while (1) {
 		&mqttpublish ("keepaliveepoch", sprintf("%.0f", $now));
 	}
 
+	# Read all devices from Bus
+	my $alldevices = "";
+	eval {
+		$alldevices = $owserver->dir("/uncached"); # Read all present devices
+	};
+	my %alldevicesbus = "";
+	foreach my $bus (@busses) {
+		next if $bus eq "";
+		$alldevicesbus{"$bus"} = $owserver->dir("/uncached$bus"); # Read all present devices at this bus
+	}
+
 	# Scan for devices
 	if ( $now > $lastdevices + $refresh_devices ) {
 		LOGINF "Current time: $now Last device check: $lastdevices -> scan busses";
@@ -201,9 +212,6 @@ while (1) {
 	if ( $now > $lastvalues + $refresh_values ) {
 		LOGINF "Current time: $now Last values check: $lastvalues -> read values";
 		$lastvalues = time();
-		eval {
-			my $tmp = $owserver->dir("/uncached"); # Just to refresh device list
-		};
 		foreach (@devices) {
 			my $publish = 0;
 			my $device = $_;
@@ -261,9 +269,6 @@ while (1) {
 	
 	# Scan for values - custom configs
 	LOGINF "Current time: $now -> read custom configured values";
-	eval {
-		my $tmp = $owserver->dir("/uncached"); # Just to refresh device list
-	};
 	foreach (@customdevices) {
 		my $publish = 0;
 		my $device = $_;
@@ -312,8 +317,16 @@ while (1) {
 				}
 			}
 			if ( $devcfg->{"$device"}->{"checkpresent"} ) {
-				my $value = owreadpresent("$customuncached" . "/$device");
-				$value =~ s/^\s+//;
+				my $value = 0;
+				if ( $alldevices =~ /$device/ ) { # Device is online
+					LOGDEB "Found $device - device is online.";
+					$value = "1";
+				} else {
+					LOGDEB "Do not found $device - device is offline.";
+					$value = "0";
+				}
+				#my $value = owreadpresent("$customuncached" . "/$device");
+				#$value =~ s/^\s+//;
 				if ( $cache{"$device"}{"present"} eq $value && !$republish ) {
 					LOGDEB "Custom:  Read Value: " . $customuncached . "/" . $device . "/present: " . $value . " -> Value not changed -> skipping";
 				} else {
@@ -326,8 +339,7 @@ while (1) {
 						$data{"bus"} = "-9999";
 						foreach my $bus (@busses) {
 							next if $bus eq "";
-							my $test = owreadpresent($bus . "$customuncached" . "/$device");
-							if ($test > 0) {
+							if ( $alldevicesbus{"$bus"} =~ /$device/ ) { # Device is online
 								my $busclear = $bus;
 								$busclear =~ s/^\/bus\.//s;
 								$data{"bus"} = "$busclear";
