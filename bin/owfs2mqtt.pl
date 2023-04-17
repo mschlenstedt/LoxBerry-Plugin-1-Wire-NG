@@ -189,6 +189,14 @@ while (1) {
 		&mqttpublish ("keepaliveepoch", sprintf("%.0f", $now));
 	}
 
+	# Scan for devices
+	if ( $now > $lastdevices + $refresh_devices ) {
+		LOGINF "Current time: $now Last device check: $lastdevices -> scan busses";
+		$lastdevices = time();
+		&readdevices();
+		$republish = 1;
+	}
+
 	# Read all devices from Bus
 	my $alldevices = "";
 	eval {
@@ -200,13 +208,6 @@ while (1) {
 		$alldevicesbus{"$bus"} = $owserver->dir("/uncached$bus"); # Read all present devices at this bus
 	}
 
-	# Scan for devices
-	if ( $now > $lastdevices + $refresh_devices ) {
-		LOGINF "Current time: $now Last device check: $lastdevices -> scan busses";
-		$lastdevices = time();
-		&readdevices();
-		$republish = 1;
-	}
 
 	# Scan for values - default configs
 	if ( $now > $lastvalues + $refresh_values ) {
@@ -641,7 +642,7 @@ sub mqttconnect
 	eval {
 		LOGINF "Connecting to MQTT Broker";
 		$mqtt = Net::MQTT::Simple->new($mqttbroker . ":" . $mqttport);
-		$mqtt->last_will($mqtttopic . "plugin", "Disconnected", 1);
+		$mqtt->last_will($mqtttopic . "/status/plugin", "Disconnected", 1);
 		if( $mqtt_username and $mqtt_password ) {
 			LOGDEB "MQTT Login with Username and Password: Sending $mqtt_username $mqtt_password";
 			$mqtt->login($mqtt_username, $mqtt_password);
