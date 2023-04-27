@@ -208,7 +208,6 @@ while (1) {
 		$alldevicesbus{"$bus"} = $owserver->dir("/uncached$bus"); # Read all present devices at this bus
 	}
 
-
 	# Scan for values - default configs
 	if ( $now > $lastvalues + $refresh_values ) {
 		LOGINF "Current time: $now Last values check: $lastvalues -> read values";

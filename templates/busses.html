@@ -1,0 +1,20 @@
+<TMPL_VAR NAME=OWFS.LABEL_BUSLIST>
+<br>
+<table data-role="table" id="movie-table-custom" data-mode="reflow" class="ui-responsive">
+  <thead>
+    <tr>
+      <th data-priority="1">Bus</th>
+      <th data-priority="2">Name</th>
+      <th data-priority="3">Device</th>
+    </tr>
+  </thead>
+  <tbody>
+  <TMPL_LOOP NAME=BUSSES>
+  <tr>
+      <td><TMPL_VAR NAME=NUMBER></td>
+      <td><TMPL_VAR NAME=NAME></td>
+      <td><TMPL_VAR NAME=DEVICE></td>
+  </tr>
+  </TMPL_LOOP>
+  </tbody>
+</table>

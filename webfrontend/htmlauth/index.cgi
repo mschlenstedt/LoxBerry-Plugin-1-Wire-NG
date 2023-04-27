@@ -509,6 +509,12 @@ sub saveowfs
 	$cfg->{refreshdev} = $q->{refreshdev};
 	$q->{refreshval} =~ s/,/\./g;
 	$cfg->{refreshval} = $q->{refreshval};
+	$cfg->{busses} = undef;
+	foreach my $key (keys %$q) {
+		if ($key =~ /^bus\d+$/) {
+			$cfg->{busses}->{$key} = $q->{$key};
+		}
+	}
 	$jsonobj->write();
 
 	my $subscr_file = $lbpconfigdir."/owfs.conf";

@@ -11,7 +11,7 @@ use strict;
 #use Data::Dumper;
 
 # Version of this script
-my $version = "2.0.4";
+my $version = "2.0.5";
 
 # Command line options
 #my $cgi = CGI->new;
@@ -116,6 +116,9 @@ else {
 
 }
 
+LOGEND "This is the end - My only friend, the end...";
+LoxBerry::System::unlock(lockfile => '1-wire-ng-watchdog');
+
 exit;
 
 
@@ -138,19 +141,113 @@ sub start
 	system ("sudo systemctl start owhttpd");
 	sleep (1);
 
-	LOGINF "Starting owfs2mqtt...";
-	LOGDEB "Call: $lbpbindir/owfs2mqtt.pl --verbose=$verboseval";
-		eval {
-			system("$lbpbindir/owfs2mqtt.pl --verbose=$verboseval &");
-		};
+	# Bus Config
+	my $buscfgfile = $lbpconfigdir . "/busses.json";
+
+	# Connect to OWServer
+	eval {
+		$owserver = OWNet->new('localhost:' . $owfscfg->{"serverport"} );
+	};
+	if ($@ || !$owserver) {
+		my $error = $@ || 'Unknown failure';
+		LOGERR "Could not connect to OWServer - $error";
+		LoxBerry::System::write_file($buscfgfile, "{ }");
+		return (1);
+	};
+
+
+	# Scan for busses
+	my $busses;
+	eval {
+		$busses = $owserver->dir("/");
+	};
+	if ($@ || !$busses) {
+		my $error = $@ || 'Unknown failure';
+		LOGERR "Could not read busses from OWServer - $error Busses: $busses";
+		LoxBerry::System::write_file($buscfgfile, "{ }");
+		return (1);
+	};
+	LOGDEB "OWServer Root Folder: $busses";
+	
+	# Create available busses
+	my $jsonobjbus = LoxBerry::JSON->new();
+	my $buscfg = $jsonobjbus->open(filename => $buscfgfile);
+
+	# Set default values
+	my @temp = split(/,/,$busses);
+	my @busses;
+	my $newbuscfg;
+	foreach (@temp) {
+		if ( $_ =~ /^\/bus.*$/ ) {
+			my $busname;
+			my $busaddress;
+			eval {
+				$busname = $owserver->read("$_/interface/settings/name");
+				$busaddress = $owserver->read("$_/interface/settings/address");
+			};
+			push (@busses, $_);
+			$_ =~ s/^\/bus\.//s;
+			LOGDEB "Found Bus bus$_  Name: $busname  Address: $busaddress";
+			$newbuscfg->{"bus$_"}->{"name"} = $busname;
+			$newbuscfg->{"bus$_"}->{"address"} = $busaddress;
+		}
+	}
+	$jsonobjbus->{jsonobj} = $newbuscfg;
+	$jsonobjbus->write();
+
+	# If no busses are configured, enable all
+	if (! $owfscfg->{"busses"} ) {
+		foreach (@busses) {
+			$_ =~ s/^\/bus\.//s;
+			$owfscfg->{"busses"}->{"bus$_"} = "true";
+		}
+		$jsonobjowfs->write();
+	}
+
+	# Startup
+	my $startup = 0;
+	foreach (@busses) {
+		$_ =~ s/^\/bus\.//s;
+		if ( is_enabled( $owfscfg->{"busses"}->{"bus$_"} ) ) {
+			$startup = 1;
+			last;
+		}
+	}
+	if ($startup) {
+		LOGINF "Starting owfs2mqtt...";
+		LOGDEB "Call: $lbpbindir/owfs2mqtt.pl --verbose=$verboseval";
+		system("$lbpbindir/owfs2mqtt.pl --verbose=$verboseval");
 		$exitcode = $? >> 8;
 		if ($exitcode != 0) {
 			my $error = $@ || 'Unknown failure';
 			LOGERR "Could not start $lbpbindir/owfs2mqtt.pl --verbose=$verboseval - $error";
+			return(1);
 		} else {
 			LOGOK "$lbpbindir/owfs2mqtt.pl --verbose=$verboseval started successfully.";
 		}
-	
+	} else {
+		LOGINF "No Bus enabled. Will not start owfs2mqtt.";
+		return(0);
+	}
+
+	# Start seperate owfs instances for each found and enabled bus
+	foreach (@busses) {
+		$_ =~ s/^\/bus\.//s;
+		print "Know scanning: $_ And this is: " . $owfscfg->{"busses"}->{"bus$_"} . "\n";
+		if ( is_enabled( $owfscfg->{"busses"}->{"bus$_"} ) ) {
+			LOGDEB "Call: $lbpbindir/owfs2mqtt.pl --bus=$_ --verbose=$verboseval";
+			eval {
+				system("$lbpbindir/owfs2mqtt.pl --bus=$_ --verbose=$verboseval &");
+			};
+			$exitcode = $? >> 8;
+			if ($exitcode != 0) {
+				my $error = $@ || 'Unknown failure';
+				LOGERR "Could not start $lbpbindir/owfs2mqtt.pl --bus=$_ --verbose=$verboseval - $error";
+			} else {
+				LOGOK "$lbpbindir/owfs2mqtt.pl --bus=$_ --verbose=$verboseval started successfully.";
+			}
+		}
+	}
 	return(0);
 
 }

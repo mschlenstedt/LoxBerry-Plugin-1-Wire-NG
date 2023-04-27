@@ -62,7 +62,7 @@
 
 	<div id="main"> <!-- style="visibility:hidden"> style="display:none;" --> 
 		
-		<form>
+		<form id="owfsform">
 
 		<div class="lb_flex-container OWFS ui-state-disabled">
 			<div	class="lb_flex-item-label">
@@ -76,10 +76,16 @@
 					<label	class="control-label" for="serial2usb"><TMPL_VAR OWFS.LABEL_SERIAL2USB></label>
 					<input type="checkbox" name="serial2usb" id="serial2usb"><br>
 					<label	class="control-label" for="i2c"><TMPL_VAR OWFS.LABEL_I2C></label>
-					<table><tr>
-					<td width="100%"><input type="checkbox" name="i2c" id="i2c" data-inline="true"></td>
-					<td> <a href="#" onclick="window.open('./scan_i2c.cgi', 'NewWindow1','scrollbars=true,toolbar=no,location=no,directories=no,status=no,menubar=no,copyhistory=no,width=800,height=800')" class="ui-btn ui-btn-inline ui-btn-icon-left ui-icon-search ui-corner-all"><TMPL_VAR "OWFS.BUTTON_SCANI2C"></a>
-					</tr></table><br>
+					<table>
+					<tr>
+					<td width="100%">
+					<input type="checkbox" name="i2c" id="i2c" data-inline="true">
+					</td>
+					<td>
+					<a href="#" onclick="window.open('./scan_i2c.cgi', 'NewWindow1','scrollbars=true,toolbar=no,location=no,directories=no,status=no,menubar=no,copyhistory=no,width=800,height=800')" class="ui-btn ui-btn-inline ui-btn-icon-left ui-icon-search ui-corner-all"><TMPL_VAR "OWFS.BUTTON_SCANI2C"></a>
+					</td>
+					</tr>
+					</table><br>
 					<label	class="control-label" for="gpio"><TMPL_VAR OWFS.LABEL_GPIO></label>
 					<input onclick="refreshOWFSForm()" type="checkbox" name="gpio" id="gpio"><br>
 					<label	class="control-label" for="pullup"><TMPL_VAR OWFS.LABEL_PULLUP></label>
@@ -89,6 +95,36 @@
 			<div	class="lb_flex-item-spacer"></div>
 			<div	class="lb_flex-item-help hint">
 				<TMPL_VAR OWFS.HINT_OWFSADAPTERS>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+
+		<div class="lb_flex-container OWFS ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class="control-label"
+					for="httpdport"><TMPL_VAR OWFS.LABEL_USEBUSSES></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+				<table>
+				<tr>
+				<td>
+				<div id="bussesfieldset">
+				<font color="red"><TMPL_VAR OWFS.HINT_NOBUSSESFOUND></font>
+				</div>
+				</td>
+				<td>
+				&nbsp;
+				</td>
+				<td>
+				<a href="#" onclick="window.open('./busses.cgi', 'NewWindow1','scrollbars=true,toolbar=no,location=no,directories=no,status=no,menubar=no,copyhistory=no,width=800,height=800')" class="ui-btn ui-btn-inline ui-btn-icon-left ui-icon-search ui-corner-all"><TMPL_VAR "OWFS.BUTTON_SHOWBUSSES"></a>
+				</td>
+				</tr>
+				</table>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR OWFS.HINT_USEBUSSES>
 			</div>
 			<div	class="lb_flex-item-spacer"></div>
 		</div>
@@ -413,35 +449,23 @@ var formlog = '<TMPL_VAR FORM_LOG>';
 var storedDevices;
 
 $(function() {
-	
-	getconfig();
 
 	if (formowfs) {
 		// PIDs
 		setInterval(function(){ update_pids(); }, 3000);
 		update_pids();
+		getconfig('busses');
 	}
-	
-	if (formdevices) {
+	else if (formdevices) {
 		console.log("Form devices - calling search");
 		$("#main").css( 'visibility', 'visible' );
 		$('#btnsearchdevices').trigger("click");
+		getconfig();
 	}
-	
-	// Eventhandlers for "Edit" to enable and disable validation
-//	$("#popupEditButton").click( function(e) {
-//		allFormInputs = $("#popupEdit").find(":input");
-//		allFormInputs.map(function(index,dom){validate_enable("#"+dom.id)});
-//		console.log("popupEditButton: Found "+allFormInputs.length+" form inputs");
-//	});
-//	$("#popupEdit").on( "popupafterclose" , function(e) {
-//		allFormInputs = $("#popupEdit").find(":input");
-//		allFormInputs.map(function(index,dom){validate_clean_objects("#"+dom.id)});
-//		allFormInputs.map(function(index,dom){$("#error-msg-"+dom.id).remove()});
-//		console.log("popupEdit afterclose: Found "+allFormInputs.length+" form inputs");
-//	});
-	// The btnbrideedit event handler is in getConfig (as it is generated dynamically
-	
+	else {
+		getconfig();
+	}
+
 });
 
 function update_pids()
@@ -538,9 +562,7 @@ function saveMQTT() {
 function saveOWFS() {
 	$("#owfs_hint").attr("style", "color:blue").html("<TMPL_VAR OWFS.HINT_SAVE_SAVING>");
 	console.log ("Saving OWFS settings");
-	$.ajax( { 
-		type: 'POST',
-		data: { 
+	var data = { 
 			ajax: 'saveowfs', 
 			fake: $('#fake').val(),
 			usb: $('#usb').is(":checked"),
@@ -555,6 +577,14 @@ function saveOWFS() {
 			refreshval: $('#refreshval').val(),
 			uncached: $('#uncached').is(":checked"),
 		}
+	// Add all Busses
+	var idArray = [];
+	$('.bus').each(function () {
+		data[this.id] = $('#'+this.id).is(":checked")
+	});
+	$.ajax( { 
+		type: 'POST',
+		data: data 
 	})
 	.fail(function( data ) {
 		console.log( "saveowfs Fail", data );
@@ -563,7 +593,7 @@ function saveOWFS() {
 	.done(function( data ) {
 		console.log( "saveowfs Success: ", data );
 		$("#owfs_hint").attr("style", "color:green").html("<TMPL_VAR OWFS.HINT_SAVE_OK>");
-		getconfig();
+		getconfig('busses');
 	})
 	.always(function( data ) {
 		console.log( "saveowfs Finished" );
@@ -596,22 +626,26 @@ function restartOWFS() {
 
 
 // Get Config
-function getconfig() {
+function getconfig(config) {
 
-	if ( formowfs ) {
+	if ( config ) {
+		console.log( "Get Config " + config  );
+		var form = config;
+	}
+	else if ( formowfs ) {
 		console.log( "Get Config for owfs form" );
 		var form = 'owfs';
 	}
-	if ( formdevices ) {
+	else if ( formdevices ) {
 		console.log( "Get Config for Devices form" );
 		var form = 'devices';
 	}
-	if ( formmqtt ) {
+	else if ( formmqtt ) {
 		console.log( "Get Config for MQTT form" );
 		var form = 'mqtt';
 	}
-	if ( formlog ) {
-		console.log( "Get Config for LOG form" );
+	else {
+		console.log( "Get Config for unknown form - skipping" );
 		$("#main").css( 'visibility', 'visible' );
 		// No need to fetch config
 		return;
@@ -629,7 +663,7 @@ function getconfig() {
 		console.log( "getconfig Success", data );
 		$("#main").css( 'visibility', 'visible' );
 
-		if ( formdevices ) {
+		if ( form === 'devices' ) {
 			console.log( "Parse Item for Devices form" );
 			$('#data-list').empty();
 			if ( data.error || jQuery.isEmptyObject(data)) {
@@ -665,19 +699,18 @@ function getconfig() {
 				$('<td />', { text: ( item.checkpresent == true ? '<TMPL_VAR COMMON.YES>' : '<TMPL_VAR COMMON.NO>' ) }).appendTo(row);
 				$('<td />', { text: item.values }).appendTo(row);
 				$('<td />', { html: '\
-				<a href="javascript:askEditDevice(\'' + intDevId + '\')" class="btndeviceedit" id="btndeviceedit'+item.address+'" name="btndeviceeedit'+item.address+'" \
-                                title="<TMPL_VAR DEVICES.BUTTON_EDIT> ' + item.address + '"> \
-                                <img src="./images/gear_32.png" height="32"></img></a> \
-                                \
-                                <a href="javascript:askDeleteDevice(\'' + intDevId + '\')" id="btndevicedelete'+item.address+'" name="btndevicedelete'+item.address+'" \
-                                title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + item.address + '"> \
-                                <img src="./images/cancel_32.png" height="32"></img></a> \
-                                ' }).appendTo(row);
-                                $(row).trigger("create");
+					<a href="javascript:askEditDevice(\'' + intDevId + '\')" class="btndeviceedit" id="btndeviceedit'+item.address+'" name="btndeviceeedit'+item.address+'" \
+					title="<TMPL_VAR DEVICES.BUTTON_EDIT> ' + item.address + '"> \
+					<img src="./images/gear_32.png" height="32"></img></a> \
+					<a href="javascript:askDeleteDevice(\'' + intDevId + '\')" id="btndevicedelete'+item.address+'" name="btndevicedelete'+item.address+'" \
+					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + item.address + '"> \
+					<img src="./images/cancel_32.png" height="32"></img></a> \
+					' }).appendTo(row);
+					$(row).trigger("create");
 				});
 			};
 
-		if ( formmqtt ) {
+		if ( form === 'mqtt' ) {
 			console.log( "Parse Item for MQTT form" );
 			// Fill the form with json data retrieved from the ajax getconfig call
 			if ( data.error || jQuery.isEmptyObject(data)) {
@@ -690,7 +723,26 @@ function getconfig() {
 			}
 		};
 
-		if ( formowfs ) {
+		if ( form === 'busses' ) {
+			console.log( "Parse Item for Busses config" );
+			// Fill the form with json data retrieved from the ajax getconfig call
+			if ( data.error || jQuery.isEmptyObject(data)) {
+				console.log("busses.json is empty, does not exist or is invalid.");
+			} else {
+				fieldset = "<fieldset data-role='controlgroup' data-type='horizontal'>";
+				$.each(data, function ( index ) {
+					console.log(index);
+					var busno = index.replace('bus','');
+					fieldset += "<input class='bus' type='checkbox' name='" + index + "' id='" + index + "'><label for='" + index + "'>" + busno + "</label>";
+				});
+				fieldset += "</fieldset>";
+				$( "#bussesfieldset" ).html( fieldset ).trigger("create");
+			}
+			// Get rest of the form
+			getconfig();
+		};
+
+		if ( form === 'owfs' ) {
 			console.log( "Parse Item for OWFS form" );
 			// Fill the form with json data retrieved from the ajax getconfig call
 			if ( data.error || jQuery.isEmptyObject(data)) {
@@ -756,6 +808,13 @@ function getconfig() {
 			} else {
 				$("#refreshval").val('60');
 			}
+			$.each(data.busses, function ( index, value ) {
+				if(value === "true") {
+					$("#"+index).prop('checked', true).checkboxradio("refresh");
+				} else {
+					$("#"+index).prop('checked', false).checkboxradio("refresh");
+				}
+			});
 			refreshOWFSForm();
 		};
 
