@@ -446,6 +446,8 @@ var formdevices = '<TMPL_VAR FORM_DEVICES>';
 var formmqtt = '<TMPL_VAR FORM_MQTT>';
 var formlog = '<TMPL_VAR FORM_LOG>';
 
+var nopidrefresh = "0";
+
 var storedDevices;
 
 $(function() {
@@ -470,6 +472,10 @@ $(function() {
 
 function update_pids()
 {
+
+	if (nopidrefresh === "1") {
+		return;
+	}
 
 	$.ajax( { 
 			type: 'POST',
@@ -606,6 +612,7 @@ function restartOWFS() {
 	$("#owserverstate").attr("style", "color:blue").html("<TMPL_VAR OWFS.MSG_OWSERVER_REFRESH>");
 	$("#owhttpdstate").attr("style", "color:blue").html("<TMPL_VAR OWFS.MSG_OWHTTPD_REFRESH>");
 	$("#owfs2mqttstate").attr("style", "color:blue").html("<TMPL_VAR OWFS.MSG_OWFS2MQTT_REFRESH>");
+	nopidrefresh = "1";
 	$.ajax( { 
 			type: 'POST',
 			data: { 
@@ -621,6 +628,7 @@ function restartOWFS() {
 	})
 	.always(function( data ) {
 		console.log( "Restart OWFS Finished" );
+		nopidrefresh = "0";
 	});
 }
 
