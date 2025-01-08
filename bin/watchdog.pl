@@ -204,36 +204,35 @@ sub start
 		$jsonobjowfs->write();
 	}
 
-	# Startup
-	my $startup = 0;
-	foreach (@busses) {
-		$_ =~ s/^\/bus\.//s;
-		if ( is_enabled( $owfscfg->{"busses"}->{"bus$_"} ) ) {
-			$startup = 1;
-			last;
-		}
-	}
-	if ($startup) {
-		LOGINF "Starting owfs2mqtt...";
-		LOGDEB "Call: $lbpbindir/owfs2mqtt.pl --verbose=$verboseval";
-		system("$lbpbindir/owfs2mqtt.pl --verbose=$verboseval");
-		$exitcode = $? >> 8;
-		if ($exitcode != 0) {
-			my $error = $@ || 'Unknown failure';
-			LOGERR "Could not start $lbpbindir/owfs2mqtt.pl --verbose=$verboseval - $error";
-			return(1);
-		} else {
-			LOGOK "$lbpbindir/owfs2mqtt.pl --verbose=$verboseval started successfully.";
-		}
-	} else {
-		LOGINF "No Bus enabled. Will not start owfs2mqtt.";
-		return(0);
-	}
+#	# Startup
+#	my $startup = 0;
+#	foreach (@busses) {
+#		$_ =~ s/^\/bus\.//s;
+#		if ( is_enabled( $owfscfg->{"busses"}->{"bus$_"} ) ) {
+#			$startup = 1;
+#			last;
+#		}
+#	}
+#	if ($startup) {
+#		LOGINF "Starting owfs2mqtt...";
+#		LOGDEB "Call: $lbpbindir/owfs2mqtt.pl --verbose=$verboseval";
+#		system("$lbpbindir/owfs2mqtt.pl --verbose=$verboseval");
+#		$exitcode = $? >> 8;
+#		if ($exitcode != 0) {
+#			my $error = $@ || 'Unknown failure';
+#			LOGERR "Could not start $lbpbindir/owfs2mqtt.pl --verbose=$verboseval - $error";
+#			return(1);
+#		} else {
+#			LOGOK "$lbpbindir/owfs2mqtt.pl --verbose=$verboseval started successfully.";
+#		}
+#	} else {
+#		LOGINF "No Bus enabled. Will not start owfs2mqtt.";
+#		return(0);
+#	}
 
 	# Start seperate owfs instances for each found and enabled bus
 	foreach (@busses) {
 		$_ =~ s/^\/bus\.//s;
-		print "Know scanning: $_ And this is: " . $owfscfg->{"busses"}->{"bus$_"} . "\n";
 		if ( is_enabled( $owfscfg->{"busses"}->{"bus$_"} ) ) {
 			LOGDEB "Call: $lbpbindir/owfs2mqtt.pl --bus=$_ --verbose=$verboseval";
 			eval {
