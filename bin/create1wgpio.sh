@@ -2,20 +2,30 @@
 
 pluginname=REPLACELBPPLUGINDIR
 
+if [ -e /boot/firmnware/config.txt ]; then
+	$configfile="/boot/firmnware/config.txt"
+elif [ -e /boot/config.txt ]; then
+	$configfile="/boot/config.txt"
+else
+	echo "Error: No config.txt found. Is this a Raspberry?"
+	exit 1
+fi
+
 # Clean config
-sed -i '/dtoverlay=w1-gpio,gpiopin=4.*$/d' /boot/config.txt
+sed -i '/dtoverlay=w1-gpio,gpiopin=4.*$/d' $configfile
 
 gpio=$(jq -r '.gpio' $LBPCONFIG/$pluginname/owfs.json)
 
 if [ $gpio = "true" ]; then
-	sed -i '${/^$/d;}' /boot/config.txt # Remove last blank line
-	echo "" >> /boot/config.txt
+	sed -i '${/^$/d;}' $configfile # Remove last blank line
+	echo "" >> $configfile
 	pullup=$(jq -r '.pullup' $LBPCONFIG/$pluginname/owfs.json)
-	echo "$pullup"
 	if [ $pullup = "true" ]; then 
-		echo "dtoverlay=w1-gpio,gpiopin=4,pullup=on" >> /boot/config.txt
+		echo "dtoverlay=w1-gpio,gpiopin=4,pullup=on" >> $configfile
 	else
-		echo "dtoverlay=w1-gpio,gpiopin=4,pullup=off" >> /boot/config.txt
+		echo "dtoverlay=w1-gpio,gpiopin=4,pullup=off" >> $configfile
 	fi
 fi
+
+echo "Done…"
 exit 0
