@@ -2,8 +2,8 @@
 
 pluginname=REPLACELBPPLUGINDIR
 
-if [ -e /boot/firmnware/config.txt ]; then
-	$configfile="/boot/firmnware/config.txt"
+if [ -e /boot/firmware/config.txt ]; then
+	$configfile="/boot/firmware/config.txt"
 elif [ -e /boot/config.txt ]; then
 	$configfile="/boot/config.txt"
 else
