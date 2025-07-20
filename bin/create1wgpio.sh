@@ -3,9 +3,9 @@
 pluginname=REPLACELBPPLUGINDIR
 
 if [ -e /boot/firmware/config.txt ]; then
-	$configfile="/boot/firmware/config.txt"
+	configfile="/boot/firmware/config.txt"
 elif [ -e /boot/config.txt ]; then
-	$configfile="/boot/config.txt"
+	configfile="/boot/config.txt"
 else
 	echo "Error: No config.txt found. Is this a Raspberry?"
 	exit 1
